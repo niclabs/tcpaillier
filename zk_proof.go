@@ -1,7 +1,7 @@
 package tcpaillier
 
 import (
-	"crypto"
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 )
@@ -28,24 +28,29 @@ type MulZK struct {
 // Verify verifies the Encryption ZKProof.
 func (zk *EncryptZK) Verify(pk *PubKey) error {
 
-	cache := pk.Cache()
-	nPlusOne := new(big.Int).Add(pk.N, one)
-	nToSPlusOne := cache.NToSPlusOne
 	n := pk.N
+	cache := pk.Cache()
+	nPlusOne := new(big.Int).Add(n, one)
+	nToSPlusOne := cache.NToSPlusOne
 
-	sha256 := crypto.SHA256.New()
-	sha256.Write(zk.c.Bytes())
-	sha256.Write(zk.b.Bytes())
-	e := sha256.Sum(nil)
-	bigE := new(big.Int).SetBytes(e)
+	hash := sha256.New()
+	hash.Write(zk.c.Bytes())
+	hash.Write(zk.b.Bytes())
+	eHash := hash.Sum(nil)
+	e := new(big.Int).SetBytes(eHash)
 
+	// (n+1)^w % n^(s+1)
 	nPlusOneToW := new(big.Int).Exp(nPlusOne, zk.w, nToSPlusOne)
+	// z^n % n^(s+1)
 	zToN := new(big.Int).Exp(zk.z, n, nToSPlusOne)
 
+	// (n+1)^w*z^n % n^(s+1)
 	left := new(big.Int).Mul(nPlusOneToW, zToN)
 	left.Mod(left, nToSPlusOne)
 
-	cToE := new(big.Int).Exp(zk.c, bigE, nToSPlusOne)
+	// c^e % n^(s+1)
+	cToE := new(big.Int).Exp(zk.c, e, nToSPlusOne)
+	// b*c^e % n^(s+1)
 	right := new(big.Int).Mul(zk.b, cToE)
 	right.Mod(right, nToSPlusOne)
 
@@ -63,13 +68,13 @@ func (zk *MulZK) Verify(pk *PubKey) error {
 	nToSPlusOne := cache.NToSPlusOne
 	n := pk.N
 
-	sha256 := crypto.SHA256.New()
-	sha256.Write(zk.ca.Bytes())
-	sha256.Write(zk.c.Bytes())
-	sha256.Write(zk.d.Bytes())
-	sha256.Write(zk.a.Bytes())
-	sha256.Write(zk.b.Bytes())
-	e := sha256.Sum(nil)
+	hash := sha256.New()
+	hash.Write(zk.ca.Bytes())
+	hash.Write(zk.c.Bytes())
+	hash.Write(zk.d.Bytes())
+	hash.Write(zk.a.Bytes())
+	hash.Write(zk.b.Bytes())
+	e := hash.Sum(nil)
 
 	bigE := new(big.Int).SetBytes(e)
 

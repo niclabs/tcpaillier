@@ -1,6 +1,7 @@
 package tcpaillier
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
 	"math/big"
@@ -33,17 +34,16 @@ func createRandomPolynomial(d int, x0, m *big.Int, randSource io.Reader) (polyno
 	if m.Sign() < 0 {
 		return polynomial{}, fmt.Errorf("m is negative")
 	}
-	bitLen := m.BitLen() - 1
 	poly := newPolynomial(d)
 
 	poly[0].Set(x0)
 
 	for i := 1; i < len(poly); i++ {
-		rand, err := randInt(bitLen, randSource)
+		r, err := rand.Int(randSource, m)
 		if err != nil {
 			return polynomial{}, err
 		}
-		poly[i].Mod(rand, m)
+		poly[i] = r
 	}
 	return poly, nil
 }

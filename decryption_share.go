@@ -1,7 +1,7 @@
 package tcpaillier
 
 import (
-	"crypto"
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 )
@@ -32,12 +32,12 @@ func (ds *DecryptionShare) Verify(pk *PubKey) error {
 	viToMinusE := new(big.Int).Exp(ds.vi, minusE, nToSPlusOne)
 	b := new(big.Int).Mul(vToZ, viToMinusE)
 
-	sha256 := crypto.SHA256.New()
-	sha256.Write(a.Bytes())
-	sha256.Write(b.Bytes())
-	sha256.Write(cTo4.Bytes())
-	sha256.Write(ciTo2.Bytes())
-	e := sha256.Sum(nil)
+	hash := sha256.New()
+	hash.Write(a.Bytes())
+	hash.Write(b.Bytes())
+	hash.Write(cTo4.Bytes())
+	hash.Write(ciTo2.Bytes())
+	e := hash.Sum(nil)
 
 	bigE := new(big.Int).SetBytes(e)
 

@@ -14,7 +14,7 @@ import (
 // k and using an S parameter of s in Paillier. It uses randSource
 // as a random source. If randSource is undefined, it uses crypto/rand
 // reader.
-func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*KeyShare, viArray []*big.Int, err error) {
+func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyShare, err error) {
 	if randSource == nil {
 		randSource = rand.Reader
 	}
@@ -35,17 +35,6 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*K
 	pPrimeSize := (bitSize + 1) / 2
 	qPrimeSize := bitSize - pPrimeSize - 1
 
-	// Init big numbers
-	m := new(big.Int)
-	n := new(big.Int)
-	nToSPlusOne := new(big.Int)
-	nm := new(big.Int)
-	v := new(big.Int)
-	d := new(big.Int)
-	r := new(big.Int)
-	delta := new(big.Int)
-	deltaSquare := new(big.Int)
-
 	bigS := big.NewInt(int64(s))
 	sPlusOne := new(big.Int).Add(bigS, one)
 
@@ -59,46 +48,44 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*K
 		return
 	}
 
-	n.Mul(p, q)
-	m.Mul(p1, q1)
-	nm.Mul(m, n)
-	nToSPlusOne.Exp(n, sPlusOne, nil)
+	n := new(big.Int).Mul(p, q)
+	m := new(big.Int).Mul(p1, q1)
+	nm := new(big.Int).Mul(n, m)
+	nToSPlusOne := new(big.Int).Exp(n, sPlusOne, nil)
 
-	d.Mul(m, new(big.Int).ModInverse(m, n))
+	mInv := new(big.Int).ModInverse(m, n)
+	d := new(big.Int).Mul(m, mInv)
 
 	// Generate polynomial with random coefficients.
 	var poly polynomial
-	poly, err = createRandomPolynomial(int(k-1), d, m, randSource)
+	poly, err = createRandomPolynomial(int(k-1), d, nm, randSource)
 
 	if err != nil {
 		return
 	}
 
-	// generate V
-	ok := false
-	divisor := new(big.Int)
-	one := big.NewInt(1)
-	for !ok {
-		r, err = randInt(4*n.BitLen(), randSource)
+	// generate V with Shoup heuristic
+	var r *big.Int
+	for {
+		r, err = randInt(4*bitSize, randSource)
 		if err != nil {
 			return
 		}
-		divisor.GCD(nil, nil, r, n)
-		if one.Cmp(divisor) != 0 {
-			ok = true
+		if one.Cmp(new(big.Int).GCD(nil, nil, r, n)) == 0 {
+			break
 		}
 	}
 
-	v.Mul(r, r).Mod(v, nToSPlusOne)
+	v := new(big.Int).Mul(r, r)
+	v.Mod(v, nToSPlusOne)
 
-	delta.MulRange(1, int64(l))
-	deltaSquare.Mul(delta, delta)
+	delta := new(big.Int).MulRange(1, int64(l))
+	deltaSquare := new(big.Int).Mul(delta, delta)
 
 	constant := big.NewInt(4)
 	constant.Mul(constant, deltaSquare).ModInverse(constant, n)
 
-	skList = make([]*KeyShare, l)
-	viArray = make([]*big.Int, l)
+	keyShares = make([]*KeyShare, l)
 
 	pubKey := &PubKey{
 		N:          n,
@@ -114,15 +101,16 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*K
 
 	var i uint8
 	for i = 0; i < l; i++ {
-		si := poly.eval(big.NewInt(int64(i)))
+		index := i + 1
+		si := poly.eval(big.NewInt(int64(index)))
 		si.Mod(si, nm)
-		skList[i] = &KeyShare{
+		keyShares[i] = &KeyShare{
 			PubKey: pubKey,
-			Index:  i,
+			Index:  index,
 			Si:     si,
 		}
 		deltaSi := new(big.Int).Mul(si, delta)
-		viArray[i] = new(big.Int).Exp(v, deltaSi, nToSPlusOne)
+		pubKey.Vi[i] = new(big.Int).Exp(v, deltaSi, nToSPlusOne)
 	}
 	return
 }

@@ -2,6 +2,7 @@ package tcpaillier
 
 import (
 	"crypto"
+	"crypto/sha256"
 	"fmt"
 	"math/big"
 )
@@ -16,10 +17,10 @@ type KeyShare struct {
 
 // PartialDecryption decrypts the encripted value partially, using only one
 // keyShare.
-func (ts *KeyShare) PartialDecryption(cipher *big.Int) (pd *big.Int, err error) {
+func (ts *KeyShare) PartialDecryption(c *big.Int) (pd *big.Int, err error) {
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
-	if cipher.Cmp(nToSPlusOne) < 0 && cipher.Cmp(zero) >= 0 {
+	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
 		err = fmt.Errorf("c must be between 0 (inclusive) and N^(s+1) (exclusive)")
 		return
 	}
@@ -27,7 +28,7 @@ func (ts *KeyShare) PartialDecryption(cipher *big.Int) (pd *big.Int, err error) 
 	DeltaSi2 := new(big.Int)
 	DeltaSi2.Mul(two, ts.Delta).Mul(DeltaSi2, ts.Si)
 
-	pd = new(big.Int).Exp(cipher, DeltaSi2, nToSPlusOne)
+	pd = new(big.Int).Exp(c, DeltaSi2, nToSPlusOne)
 	return
 }
 
@@ -36,7 +37,7 @@ func (ts *KeyShare) PartialDecryption(cipher *big.Int) (pd *big.Int, err error) 
 func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
-	if c.Cmp(nToSPlusOne) < 0 && c.Cmp(zero) >= 0 {
+	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
 		err = fmt.Errorf("c must be between 0 (inclusive) and N^(s+1) (exclusive)")
 		return
 	}
@@ -52,17 +53,17 @@ func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 	cTo4 := new(big.Int).Exp(c, big.NewInt(4), nToSPlusOne)
 
 	v := ts.V
-	vi := ts.Vi[ts.Index]
+	vi := ts.Vi[ts.Index-1]
 
 	a := new(big.Int).Exp(cTo4, r, nToSPlusOne)
 	b := new(big.Int).Exp(v, r, nToSPlusOne)
 
-	sha256 := crypto.SHA256.New()
-	sha256.Write(a.Bytes())
-	sha256.Write(b.Bytes())
-	sha256.Write(cTo4.Bytes())
-	sha256.Write(ciTo2.Bytes())
-	e := sha256.Sum(nil)
+	hash := sha256.New()
+	hash.Write(a.Bytes())
+	hash.Write(b.Bytes())
+	hash.Write(cTo4.Bytes())
+	hash.Write(ciTo2.Bytes())
+	e := hash.Sum(nil)
 
 	bigE := new(big.Int).SetBytes(e)
 
