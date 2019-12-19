@@ -74,7 +74,7 @@ func (pk *PubKey) Encrypt(msg []byte) (c *big.Int, err error) {
 	r, err := pk.randomModNStar()
 	// r^(n^s) % n^(s+1)
 	rToNToS := new(big.Int).Exp(r, nToS, nToSPlusOne)
-	// (n+1)^m * t^(n^s) % n^(s+1)
+	// (n+1)^m * r^(n^s) % n^(s+1)
 	c = new(big.Int).Mul(nPlusOneToM, rToNToS)
 	c.Mod(c, nToSPlusOne)
 	return
