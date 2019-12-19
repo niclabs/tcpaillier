@@ -36,10 +36,6 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*K
 	qPrimeSize := bitSize - pPrimeSize - 1
 
 	// Init big numbers
-	p1 := new(big.Int)
-	q1 := new(big.Int)
-	p := new(big.Int)
-	q := new(big.Int)
 	m := new(big.Int)
 	n := new(big.Int)
 	nToSPlusOne := new(big.Int)
@@ -53,11 +49,13 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*K
 	bigS := big.NewInt(int64(s))
 	sPlusOne := new(big.Int).Add(bigS, one)
 
-	if p, p1, err = generateSafePrimes(pPrimeSize, randSource); err != nil {
+	p, p1, err := generateSafePrimes(pPrimeSize, randSource)
+	if err != nil {
 		return
 	}
 
-	if q, q1, err = generateSafePrimes(qPrimeSize, randSource); err != nil {
+	q, q1, err := generateSafePrimes(qPrimeSize, randSource)
+	if err != nil {
 		return
 	}
 
