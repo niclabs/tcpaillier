@@ -25,6 +25,7 @@ type MulZK struct {
 	ca, c, d, a, b, w, y, z, u *big.Int
 }
 
+// Verify verifies the Encryption ZKProof.
 func (zk *EncryptZK) Verify(pk *PubKey) error {
 
 	cache := pk.Cache()
@@ -54,6 +55,7 @@ func (zk *EncryptZK) Verify(pk *PubKey) error {
 	return nil
 }
 
+// Verify verifies the Multiplication ZKProof.
 func (zk *MulZK) Verify(pk *PubKey) error {
 
 	cache := pk.Cache()

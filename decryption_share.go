@@ -15,6 +15,7 @@ type DecryptionShare struct {
 	Ci             *big.Int
 }
 
+// Verify verifies the ZKProof inside a DecryptionShare
 func (ds *DecryptionShare) Verify(pk *PubKey) error {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne

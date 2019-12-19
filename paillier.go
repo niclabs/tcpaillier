@@ -1,4 +1,4 @@
-// TCPaillier is a Threshold Paillier library, based on the Java Implementation.
+// Package tcpaillier is a Threshold Paillier library, based on the Java Implementation.
 // of Threshold Paillier Toolbox [1].
 // [1] http://www.cs.utdallas.edu/dspl/cgi-bin/pailliertoolbox/index.php
 package tcpaillier
