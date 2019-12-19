@@ -1,3 +1,6 @@
+// TCPaillier is a Threshold Paillier library, based on the Java Implementation.
+// of Threshold Paillier Toolbox [1].
+// [1] http://www.cs.utdallas.edu/dspl/cgi-bin/pailliertoolbox/index.php
 package tcpaillier
 
 import (
@@ -7,22 +10,25 @@ import (
 	"math/big"
 )
 
-// Generates Paillier keyshares, based on S
-func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*ThresholdShare, viArray []*big.Int, err error) {
+// GenKeyShares returns a list of l keyshares, with a threshold of
+// k and using an S parameter of s in Paillier. It uses randSource
+// as a random source. If randSource is undefined, it uses crypto/rand
+// reader.
+func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*KeyShare, viArray []*big.Int, err error) {
 	if randSource == nil {
 		randSource = rand.Reader
 	}
 	// Parameter checking
 	if l <= 1 {
-		err = fmt.Errorf("L should be greater than 1, but it is %Cached", l)
+		err = fmt.Errorf("L should be greater than 1, but it is %d", l)
 		return
 	}
 	if k <= 0 {
-		err = fmt.Errorf("K should be greater than 0, but it is %Cached", k)
+		err = fmt.Errorf("K should be greater than 0, but it is %d", k)
 		return
 	}
 	if k < (l/2+1) || k > l {
-		err = fmt.Errorf("K should be between the %Cached and %Cached, but it is %Cached", (l/2)+1, l, k)
+		err = fmt.Errorf("K should be between %d and %d, but it is %d", (l/2)+1, l, k)
 		return
 	}
 
@@ -93,7 +99,7 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*T
 	constant := big.NewInt(4)
 	constant.Mul(constant, deltaSquare).ModInverse(constant, n)
 
-	skList = make([]*ThresholdShare, l)
+	skList = make([]*KeyShare, l)
 	viArray = make([]*big.Int, l)
 
 	pubKey := &PubKey{
@@ -112,7 +118,7 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*T
 	for i = 0; i < l; i++ {
 		si := poly.eval(big.NewInt(int64(i)))
 		si.Mod(si, nm)
-		skList[i] = &ThresholdShare{
+		skList[i] = &KeyShare{
 			PubKey: pubKey,
 			Index:  i,
 			Si:     si,

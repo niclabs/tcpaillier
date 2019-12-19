@@ -6,13 +6,21 @@ import (
 	"math/big"
 )
 
+// ZKProof represents a Zero Knowledge Proof.
 type ZKProof interface {
+	// Verify returns nil if the verification of the ZKProof was successful,
+	// and an error if it fails.
 	Verify(pk *PubKey) error
 }
 
+// EncryptZK represents a ZKProof related to the encryption
+// of a value.
 type EncryptZK struct {
 	c, b, w, z *big.Int
 }
+
+// MulZK represents a ZKProof related to the multiplication
+// of an encrypted value by a constant.
 type MulZK struct {
 	ca, c, d, a, b, w, y, z, u *big.Int
 }

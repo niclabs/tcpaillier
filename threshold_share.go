@@ -6,13 +6,17 @@ import (
 	"math/big"
 )
 
-type ThresholdShare struct {
+// KeyShare represents a share of the private key
+// used to decrypt values in paillier encryption scheme.
+type KeyShare struct {
 	*PubKey
 	Index uint8
 	Si    *big.Int
 }
 
-func (ts *ThresholdShare) PartialDecryption(cipher *big.Int) (pd *PartialDecryption, err error) {
+// PartialDecryption decrypts the encripted value partially, using only one
+// keyShare.
+func (ts *KeyShare) PartialDecryption(cipher *big.Int) (pd *big.Int, err error) {
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	if cipher.Cmp(nToSPlusOne) < 0 && cipher.Cmp(zero) >= 0 {
@@ -23,16 +27,13 @@ func (ts *ThresholdShare) PartialDecryption(cipher *big.Int) (pd *PartialDecrypt
 	DeltaSi2 := new(big.Int)
 	DeltaSi2.Mul(two, ts.Delta).Mul(DeltaSi2, ts.Si)
 
-	d := new(big.Int).Exp(cipher, DeltaSi2, nToSPlusOne)
-
-	pd = &PartialDecryption{
-		Index:      ts.Index,
-		Decryption: d,
-	}
+	pd = new(big.Int).Exp(cipher, DeltaSi2, nToSPlusOne)
 	return
 }
 
-func (ts *ThresholdShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
+// DecryptProof returns a DecryptionShare, that is composed by a ZKProof and
+// a partially decrypted value.
+func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	if c.Cmp(nToSPlusOne) < 0 && c.Cmp(zero) >= 0 {
@@ -44,7 +45,7 @@ func (ts *ThresholdShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err err
 	if err != nil {
 		return
 	}
-	ciTo2 := new(big.Int).Exp(ci.Decryption, two, nToSPlusOne)
+	ciTo2 := new(big.Int).Exp(ci, two, nToSPlusOne)
 
 	numBits := int(ts.S+2)*int(ts.K) + crypto.SHA256.Size()/8
 	r, err := randInt(numBits, ts.RandSource)
@@ -70,13 +71,13 @@ func (ts *ThresholdShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err err
 	z := new(big.Int).Add(eSiDelta, r)
 
 	ds = &DecryptionShare{
-		nToSPlusOne: nToSPlusOne,
-		vi:          vi,
-		c:           c,
-		Ci:          ci,
-		e:           bigE,
-		v:           v,
-		z:           z,
+		Index: ts.Index,
+		vi:    vi,
+		c:     c,
+		Ci:    ci,
+		e:     bigE,
+		v:     v,
+		z:     z,
 	}
 
 	return

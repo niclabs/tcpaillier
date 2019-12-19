@@ -6,14 +6,13 @@ import (
 	"math/big"
 )
 
+// DecryptionShare represents a partial decryption of a value
+// and the ZKProof of that decryption. It complies with ZKProof
+// interface.
 type DecryptionShare struct {
+	Index          uint8
 	c, v, vi, z, e *big.Int
-	Ci             *PartialDecryption
-}
-
-type PartialDecryption struct {
-	Index      uint8
-	Decryption *big.Int
+	Ci             *big.Int
 }
 
 func (ds *DecryptionShare) Verify(pk *PubKey) error {
@@ -25,7 +24,7 @@ func (ds *DecryptionShare) Verify(pk *PubKey) error {
 	ciTo2 := new(big.Int).Exp(ds.c, two, nToSPlusOne)
 	minusE := new(big.Int).Neg(ds.e)
 	minusTwoE := new(big.Int).Mul(minusE, two)
-	ciToMinus2e := new(big.Int).Exp(ds.Ci.Decryption, minusTwoE, nToSPlusOne)
+	ciToMinus2e := new(big.Int).Exp(ds.Ci, minusTwoE, nToSPlusOne)
 	a := new(big.Int).Mul(cTo4, ciToMinus2e)
 
 	vToZ := new(big.Int).Exp(ds.v, ds.z, nToSPlusOne)

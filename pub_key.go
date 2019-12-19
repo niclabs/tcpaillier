@@ -12,7 +12,9 @@ var zero = big.NewInt(0)
 var one = big.NewInt(1)
 var two = big.NewInt(2)
 
-// Paillier Threshold Scheme
+// PubKey represents a Paillier Public Key and its metainformation. It contains a
+// cached field, with precomputed values.
+// It also is linked with a random source, used by  the processes that require it.
 type PubKey struct {
 	N          *big.Int
 	V          *big.Int
@@ -20,15 +22,17 @@ type PubKey struct {
 	L, K, S    uint8
 	Delta      *big.Int
 	Constant   *big.Int
-	cached     *Cached
 	RandSource io.Reader
+	*cached
 }
 
-type Cached struct {
+// cached contains the cached PubKey values.
+type cached struct {
 	NPlusOne, NMinusOne, SPlusOne, NToS, NToSPlusOne, BigS *big.Int
 }
 
-func (pk *PubKey) Cache() *Cached {
+// Cache initializes the cached values and returns the structure.
+func (pk *PubKey) Cache() *cached {
 	if pk.cached == nil {
 		bigS := big.NewInt(int64(pk.S))
 		nPlusOne := new(big.Int).Add(pk.N, one)
@@ -36,7 +40,7 @@ func (pk *PubKey) Cache() *Cached {
 		sPlusOne := new(big.Int).Add(bigS, one)
 		nToS := new(big.Int).Exp(pk.N, bigS, nil)
 		nToSPlusOne := new(big.Int).Exp(pk.N, sPlusOne, nil)
-		pk.cached = &Cached{
+		pk.cached = &cached{
 			BigS:        bigS,
 			NPlusOne:    nPlusOne,
 			NMinusOne:   nMinusOne,
@@ -47,6 +51,8 @@ func (pk *PubKey) Cache() *Cached {
 	return pk.cached
 }
 
+// Encrypt encrypts a message and returns its encryption as a big Integer c.
+// If there is an error, it returns a nil integer as c.
 func (pk *PubKey) Encrypt(msg []byte) (c *big.Int, err error) {
 	m := new(big.Int).SetBytes(msg)
 	cache := pk.Cache()
@@ -61,6 +67,9 @@ func (pk *PubKey) Encrypt(msg []byte) (c *big.Int, err error) {
 	return
 }
 
+// EncryptWithProof encrypts a message and returns its encryption as a big Integer c.
+// It also returns a ZKProof that demonstrates that the encrypted value corresponds to the
+// message. If there is an error, it returns a nil integer as c.
 func (pk *PubKey) EncryptWithProof(message []byte) (c *big.Int, proof ZKProof, err error) {
 	c, err = pk.Encrypt(message)
 	if err != nil {
@@ -73,6 +82,8 @@ func (pk *PubKey) EncryptWithProof(message []byte) (c *big.Int, proof ZKProof, e
 	return
 }
 
+// Add adds an indeterminate number of encrypted values and returns its encrypted sum, or an error
+// if the value cannot be determined.
 func (pk *PubKey) Add(cList ...*big.Int) (sum *big.Int, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
@@ -88,6 +99,8 @@ func (pk *PubKey) Add(cList ...*big.Int) (sum *big.Int, err error) {
 	return
 }
 
+// Multiply multiplies a encrypted value by a constant. It returns an error if it is not able to
+// multiply the value.
 func (pk *PubKey) Multiply(c1 *big.Int, cons *big.Int) (mul *big.Int, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
@@ -101,6 +114,8 @@ func (pk *PubKey) Multiply(c1 *big.Int, cons *big.Int) (mul *big.Int, err error)
 	return
 }
 
+// MultiplyWithProof multiplies an encrypted value by a constant and returns it with a ZKProof of the
+// multiplication. It returns an error if it is not able to multiply the value.
 func (pk *PubKey) MultiplyWithProof(c1 *big.Int, cons *big.Int) (mul *big.Int, proof ZKProof, err error) {
 
 	mul, err = pk.Multiply(c1, cons)
@@ -111,6 +126,8 @@ func (pk *PubKey) MultiplyWithProof(c1 *big.Int, cons *big.Int) (mul *big.Int, p
 	return
 }
 
+// CombineShares joins partial decryptions of a value and returns a decrypted value.
+// It checks that the number of values is equal or more than the threshold.
 func (pk *PubKey) CombineShares(shares ...DecryptionShare) (dec []byte, err error) {
 	if len(shares) < int(pk.K) {
 		err = fmt.Errorf("needed %d shares to decrypt, but got %d", pk.K, len(shares))
@@ -127,23 +144,23 @@ func (pk *PubKey) CombineShares(shares ...DecryptionShare) (dec []byte, err erro
 	indexes := make(map[uint8]int)
 
 	for i, share := range shares {
-		if j, ok := indexes[share.Ci.Index]; ok {
+		if j, ok := indexes[share.Index]; ok {
 			err = fmt.Errorf("share %d repeated on indexes %d and %d", share.Index, i, j)
 			return
 		}
-		indexes[share.Ci.Index] = i
+		indexes[share.Index] = i
 	}
 
 	for i := 0; i < int(k); i++ {
 		lambda := pk.Delta
 		for j := 0; j < int(k); j++ {
 			if i != j {
-				lambda.Mul(lambda, big.NewInt(-int64(shares[j].Ci.Index)))
-				lambda.Div(lambda, big.NewInt(int64(shares[i].Ci.Index)-int64(shares[j].Ci.Index)))
+				lambda.Mul(lambda, big.NewInt(-int64(shares[j].Index)))
+				lambda.Div(lambda, big.NewInt(int64(shares[i].Index)-int64(shares[j].Index)))
 			}
 		}
 		twoLambda := new(big.Int).Mul(lambda, two)
-		ciToTwoLambda := new(big.Int).Exp(shares[i].Ci.Decryption, twoLambda, nToSPlusOne)
+		ciToTwoLambda := new(big.Int).Exp(shares[i].Ci, twoLambda, nToSPlusOne)
 		cPrime.Mul(cPrime, ciToTwoLambda)
 		cPrime.Mod(cPrime, nToSPlusOne)
 	}
@@ -151,7 +168,7 @@ func (pk *PubKey) CombineShares(shares ...DecryptionShare) (dec []byte, err erro
 	L.Div(L, n)
 
 	bigDec := new(big.Int).Mul(L, pk.Constant)
-	bigDec.Mod(bigDec,n)
+	bigDec.Mod(bigDec, n)
 	dec = bigDec.Bytes()
 	return
 }
