@@ -39,7 +39,7 @@ func createRandomPolynomial(d int, x0, m *big.Int, randSource io.Reader) (polyno
 	poly[0].Set(x0)
 
 	for i := 1; i < len(poly); i++ {
-		rand, err := randomDev(bitLen)
+		rand, err := randInt(bitLen)
 		if err != nil {
 			return polynomial{}, err
 		}

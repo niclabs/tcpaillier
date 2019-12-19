@@ -8,7 +8,7 @@ import (
 )
 
 // Generates Paillier keyshares, based on S
-func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*KeyShare, viArray []*big.Int, err error) {
+func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*ThresholdShare, viArray []*big.Int, err error) {
 	if randSource == nil {
 		randSource = rand.Reader
 	}
@@ -75,7 +75,7 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*K
 	divisor := new(big.Int)
 	one := big.NewInt(1)
 	for !ok {
-		r, err = randomDev(4*n.BitLen(), randSource)
+		r, err = randInt(4*n.BitLen(), randSource)
 		if err != nil {
 			return
 		}
@@ -93,12 +93,12 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*K
 	constant := big.NewInt(4)
 	constant.Mul(constant, deltaSquare).ModInverse(constant, n)
 
-	skList = make([]*KeyShare, l)
+	skList = make([]*ThresholdShare, l)
 	viArray = make([]*big.Int, l)
 
 	pubKey := &PubKey{
 		N:          n,
-		S:          bigS,
+		S:          s,
 		V:          v,
 		Constant:   constant,
 		Delta:      delta,
@@ -112,7 +112,7 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (skList []*K
 	for i = 0; i < l; i++ {
 		si := poly.eval(big.NewInt(int64(i)))
 		si.Mod(si, nm)
-		skList[i] = &KeyShare{
+		skList[i] = &ThresholdShare{
 			PubKey: pubKey,
 			Index:  i,
 			Si:     si,
