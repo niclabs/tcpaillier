@@ -10,15 +10,22 @@ import (
 	"math/big"
 )
 
-// GenKeyShares returns a list of l keyshares, with a threshold of
+// NewKey returns a list of l keyshares, with a threshold of
 // k and using an S parameter of s in Paillier. It uses randSource
 // as a random source. If randSource is undefined, it uses crypto/rand
 // reader.
-func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyShare, err error) {
+func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyShare, pubKey *PubKey, err error) {
 	if randSource == nil {
 		randSource = rand.Reader
 	}
 	// Parameter checking
+	if bitSize < 64 {
+		err = fmt.Errorf("bitSize should be at least 64 bits, but it is %d", bitSize)
+		return
+	}
+	if s < 1 {
+		err = fmt.Errorf("s should be at least 1, but it is %d", s)
+	}
 	if l <= 1 {
 		err = fmt.Errorf("L should be greater than 1, but it is %d", l)
 		return
@@ -32,20 +39,23 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares [
 		return
 	}
 
-	pPrimeSize := (bitSize + 1) / 2
-	qPrimeSize := bitSize - pPrimeSize - 1
-
 	bigS := big.NewInt(int64(s))
 	sPlusOne := new(big.Int).Add(bigS, one)
 
-	p, p1, err := generateSafePrimes(pPrimeSize, randSource)
+	p, p1, err := generateSafePrimes(bitSize, randSource)
 	if err != nil {
 		return
 	}
 
-	q, q1, err := generateSafePrimes(qPrimeSize, randSource)
-	if err != nil {
-		return
+	var q, q1 *big.Int
+	for {
+		q, q1, err := generateSafePrimes(bitSize, randSource)
+		if err != nil {
+			return
+		}
+		if p.Cmp(q) != 0 && p.Cmp(q1) != 0 && q.Cmp(p1) != 0 {
+			break
+		}
 	}
 
 	n := new(big.Int).Mul(p, q)
@@ -87,7 +97,7 @@ func GenKeyShares(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares [
 
 	keyShares = make([]*KeyShare, l)
 
-	pubKey := &PubKey{
+	pubKey = &PubKey{
 		N:          n,
 		S:          s,
 		V:          v,

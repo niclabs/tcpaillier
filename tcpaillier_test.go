@@ -17,7 +17,7 @@ const bitSize = 512
 var msg = big.NewInt(12)
 
 func TestGenKeyShares(t *testing.T) {
-	shares, err := tcpaillier.GenKeyShares(bitSize, s, l, k, rand.Reader)
+	shares, _, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -41,12 +41,11 @@ func TestGenKeyShares(t *testing.T) {
 }
 
 func TestPubKey_EncryptWithProof(t *testing.T) {
-	shares, err := tcpaillier.GenKeyShares(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
 	}
-	pk := shares[0].PubKey
 	encrypted, zk, err := pk.EncryptWithProof(msg.Bytes())
 	if err != nil {
 		t.Errorf("%v", err)
@@ -80,7 +79,7 @@ func TestPubKey_EncryptWithProof(t *testing.T) {
 }
 
 func Example() {
-	shares, err := tcpaillier.GenKeyShares(bitSize, s, l, k, rand.Reader)
+	shares, _, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
