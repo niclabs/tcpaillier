@@ -21,7 +21,7 @@ func (ts *KeyShare) PartialDecryption(c *big.Int) (pd *big.Int, err error) {
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
-		err = fmt.Errorf("c must be between 0 (inclusive) and N^(s+1) (exclusive)")
+		err = fmt.Errorf("cAlpha must be between 0 (inclusive) and N^(s+1) (exclusive)")
 		return
 	}
 
@@ -38,7 +38,7 @@ func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
-		err = fmt.Errorf("c must be between 0 (inclusive) and N^(s+1) (exclusive)")
+		err = fmt.Errorf("cAlpha must be between 0 (inclusive) and N^(s+1) (exclusive)")
 		return
 	}
 

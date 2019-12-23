@@ -82,9 +82,9 @@ func (pk *PubKey) encrypt(msg []byte) (c, r *big.Int, err error) {
 	return
 }
 
-// Encrypt encrypts a message and returns its encryption as a big Integer c.
+// Encrypt encrypts a message and returns its encryption as a big Integer cAlpha.
 // It also returns a ZKProof that demonstrates that the encrypted value corresponds to the
-// message. If there is an error, it returns a nil integer as c.
+// message. If there is an error, it returns a nil integer as cAlpha.
 func (pk *PubKey) Encrypt(message []byte) (c *big.Int, proof ZKProof, err error) {
 	c, r, err := pk.encrypt(message)
 	if err != nil {
@@ -105,7 +105,7 @@ func (pk *PubKey) Add(cList ...*big.Int) (sum *big.Int, err error) {
 	sum = big.NewInt(1)
 	for i, ci := range cList {
 		if ci.Cmp(nToSPlusOne) >= 0 || ci.Cmp(zero) < 0 {
-			err = fmt.Errorf("c%d must be between 0 (inclusive) and N^(s+1) (exclusive)", i+1)
+			err = fmt.Errorf("cAlpha%d must be between 0 (inclusive) and N^(s+1) (exclusive)", i+1)
 			return
 		}
 		sum.Mul(sum, ci)
@@ -116,28 +116,28 @@ func (pk *PubKey) Add(cList ...*big.Int) (sum *big.Int, err error) {
 
 // multiply multiplies a encrypted value by a constant. It returns an error if it is not able to
 // multiply the value.
-func (pk *PubKey) multiply(c *big.Int, alpha *big.Int) (cToAlpha, mul, gamma *big.Int, err error) {
+func (pk *PubKey) multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
-		err = fmt.Errorf("c must be between 0 (inclusive) and N^(s+1) (exclusive)")
+		err = fmt.Errorf("cAlpha must be between 0 (inclusive) and N^(s+1) (exclusive)")
 		return
 	}
-	cToAlpha = new(big.Int).Exp(c, alpha, nToSPlusOne)
+	preMul := new(big.Int).Exp(c, alpha, nToSPlusOne)
 	zero, gamma, err := pk.encrypt(new(big.Int).Bytes())
-	mul, err = pk.Add(cToAlpha, zero)
+	mul, err = pk.Add(preMul, zero)
 	return
 }
 
 // Multiply multiplies an encrypted value by a constant and returns it with a ZKProof of the
 // multiplication. It returns an error if it is not able to multiply the value.
 func (pk *PubKey) Multiply(c *big.Int, alpha *big.Int) (d *big.Int, proof ZKProof, err error) {
-	cToAlpha, d, gamma, err := pk.multiply(c, alpha)
-	d, s, err := pk.encrypt(alpha.Bytes())
+	d, gamma, err := pk.multiply(c, alpha)
+	cAlpha, s, err := pk.encrypt(alpha.Bytes())
 	if err != nil {
 		return
 	}
-	proof, err = pk.multiplicationProof(c, cToAlpha, d, gamma, alpha, s)
+	proof, err = pk.multiplicationProof(c, cAlpha, d, alpha, s, gamma)
 	return
 }
 
@@ -233,100 +233,99 @@ func (pk *PubKey) encryptionProof(message []byte, c, s *big.Int) (zk ZKProof, er
 	z.Mul(u, sToE).Mul(z, nPlusOneToT).Mod(z, nToSPlusOne)
 
 	zk = &EncryptZK{
-		c:  c,
-		b:  b,
-		w:  w,
-		z:  z,
-	}
-	return
-
-
-	/*
-	cache := pk.Cache()
-
-	n := pk.N
-	nPlusOne := cache.NPlusOne
-	nToSPlusOne := cache.NToSPlusOne
-
-	s, err := pk.randomModNToSPlusOneStar()
-	if err != nil {
-		return
-	}
-	x, err := pk.randomModN()
-	if err != nil {
-		return
-	}
-	u, err := pk.randomModNToSPlusOneStar()
-	if err != nil {
-		return
-	}
-
-	// (n+1)^x % n^(s+1)
-	nPlusOneToX := new(big.Int).Exp(nPlusOne, x, nToSPlusOne)
-	// u^n % n^(s+1)
-	uToN := new(big.Int).Exp(u, n, nToSPlusOne)
-	// b = (n+1)^x * u^n % n^(s+1)
-	b := new(big.Int)
-	b.Mul(nPlusOneToX, uToN).Mod(b, nToSPlusOne)
-
-	c, err := pk.encrypt(message, s)
-	if err != nil {
-		return
-	}
-
-	hash := sha256.New()
-	hash.Write(c.Bytes())
-	hash.Write(b.Bytes())
-	eBytes := hash.Sum(nil)
-
-	e := new(big.Int).SetBytes(eBytes)
-	alpha := new(big.Int).SetBytes(message)
-
-	// e*alpha
-	eAlpha := new(big.Int).Mul(e, alpha)
-
-	// x + e*alpha
-	dummy := new(big.Int).Add(x, eAlpha)
-	// (x + e*alpha) % n
-	w := new(big.Int).Mod(dummy, n)
-	// (x + e*alpha) / n
-	t := new(big.Int).Div(dummy, n)
-
-	// s^e
-	sToE := new(big.Int).Exp(s, e, nToSPlusOne)
-	// u*s^e % n^(s+1)
-	uSToE := new(big.Int).Mul(u, sToE)
-	uSToE.Mod(uSToE, nToSPlusOne)
-	// (n+1)^t % n^(s+1)
-	nPlusOneToT := new(big.Int).Exp(nPlusOne, t, nToSPlusOne)
-
-	// u*s^e*(n+1)^t % n^(s+1)
-	z := new(big.Int).Mul(uSToE, nPlusOneToT)
-	z.Mod(z, nToSPlusOne)
-
-	zk = &EncryptZK{
 		c: c,
 		b: b,
 		w: w,
 		z: z,
 	}
 	return
+
+	/*
+		cache := pk.Cache()
+
+		n := pk.N
+		nPlusOne := cache.NPlusOne
+		nToSPlusOne := cache.NToSPlusOne
+
+		s, err := pk.randomModNToSPlusOneStar()
+		if err != nil {
+			return
+		}
+		x, err := pk.randomModN()
+		if err != nil {
+			return
+		}
+		u, err := pk.randomModNToSPlusOneStar()
+		if err != nil {
+			return
+		}
+
+		// (n+1)^x % n^(s+1)
+		nPlusOneToX := new(big.Int).Exp(nPlusOne, x, nToSPlusOne)
+		// u^n % n^(s+1)
+		uToN := new(big.Int).Exp(u, n, nToSPlusOne)
+		// b = (n+1)^x * u^n % n^(s+1)
+		b := new(big.Int)
+		b.Mul(nPlusOneToX, uToN).Mod(b, nToSPlusOne)
+
+		cAlpha, err := pk.encrypt(message, s)
+		if err != nil {
+			return
+		}
+
+		hash := sha256.New()
+		hash.Write(cAlpha.Bytes())
+		hash.Write(b.Bytes())
+		eBytes := hash.Sum(nil)
+
+		e := new(big.Int).SetBytes(eBytes)
+		alpha := new(big.Int).SetBytes(message)
+
+		// e*alpha
+		eAlpha := new(big.Int).Mul(e, alpha)
+
+		// x + e*alpha
+		dummy := new(big.Int).Add(x, eAlpha)
+		// (x + e*alpha) % n
+		w := new(big.Int).Mod(dummy, n)
+		// (x + e*alpha) / n
+		t := new(big.Int).Div(dummy, n)
+
+		// s^e
+		sToE := new(big.Int).Exp(s, e, nToSPlusOne)
+		// u*s^e % n^(s+1)
+		uSToE := new(big.Int).Mul(u, sToE)
+		uSToE.Mod(uSToE, nToSPlusOne)
+		// (n+1)^t % n^(s+1)
+		nPlusOneToT := new(big.Int).Exp(nPlusOne, t, nToSPlusOne)
+
+		// u*s^e*(n+1)^t % n^(s+1)
+		z := new(big.Int).Mul(uSToE, nPlusOneToT)
+		z.Mod(z, nToSPlusOne)
+
+		zk = &EncryptZK{
+			cAlpha: cAlpha,
+			b: b,
+			w: w,
+			z: z,
+		}
+		return
 	*/
 }
 
-func (pk *PubKey) multiplicationProof(c, cToAlpha, d, gamma, alpha, s *big.Int) (zk ZKProof, err error) {
+func (pk *PubKey) multiplicationProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (zk ZKProof, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	nPlusOne := cache.NPlusOne
 	nToS := cache.NToS
 
-	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
-		err = fmt.Errorf("c must be between 1 (inclusive) and N^(s+1) (exclusive)")
+	if ca.Cmp(nToSPlusOne) >= 0 || ca.Cmp(zero) < 0 {
+		err = fmt.Errorf("ca must be between 1 (inclusive) and N^(s+1) (exclusive)")
 		return
 	}
 
-	if cToAlpha.Cmp(nToSPlusOne) >= 0 || cToAlpha.Cmp(zero) < 0 {
-		err = fmt.Errorf("cToAlpha must be between 1 (inclusive) and N^(s+1) (exclusive)")
+	if cAlpha.Cmp(nToSPlusOne) >= 0 || cAlpha.Cmp(zero) < 0 {
+		err = fmt.Errorf("cAlpha must be between 1 (inclusive) and N^(s+1) (exclusive)")
 		return
 	}
 
@@ -345,7 +344,7 @@ func (pk *PubKey) multiplicationProof(c, cToAlpha, d, gamma, alpha, s *big.Int) 
 		return
 	}
 
-	caToX := new(big.Int).Exp(cToAlpha, x, nToSPlusOne)
+	caToX := new(big.Int).Exp(ca, x, nToSPlusOne)
 	vToNToS := new(big.Int).Exp(v, nToS, nToSPlusOne)
 	a := new(big.Int)
 	a.Mul(caToX, vToNToS).Mod(a, nToSPlusOne)
@@ -356,8 +355,8 @@ func (pk *PubKey) multiplicationProof(c, cToAlpha, d, gamma, alpha, s *big.Int) 
 	b.Mul(nPlusOneToX, uToNToS).Mod(b, nToSPlusOne)
 
 	hash := sha256.New()
-	hash.Write(cToAlpha.Bytes())
-	hash.Write(c.Bytes())
+	hash.Write(ca.Bytes())
+	hash.Write(cAlpha.Bytes())
 	hash.Write(d.Bytes())
 	hash.Write(a.Bytes())
 	hash.Write(b.Bytes())
@@ -376,20 +375,20 @@ func (pk *PubKey) multiplicationProof(c, cToAlpha, d, gamma, alpha, s *big.Int) 
 	z := new(big.Int)
 	z.Mul(u, sToE).Mul(z, nPlusOneToT).Mod(z, nToSPlusOne)
 
-	caToT := new(big.Int).Exp(cToAlpha, t, nToSPlusOne)
+	caToT := new(big.Int).Exp(ca, t, nToSPlusOne)
 	gammaToE := new(big.Int).Exp(gamma, e, nToSPlusOne)
 	y := new(big.Int)
 	y.Mul(v, caToT).Mul(y, gammaToE).Mod(y, nToSPlusOne)
 
 	zk = &MulZK{
-		c:  c,
-		ca: cToAlpha,
-		d:  d,
-		b:  b,
-		w:  w,
-		z:  z,
-		a:  a,
-		y:  y,
+		cAlpha: cAlpha,
+		ca:     ca,
+		d:      d,
+		b:      b,
+		w:      w,
+		z:      z,
+		a:      a,
+		y:      y,
 	}
 	return
 }
