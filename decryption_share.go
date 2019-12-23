@@ -19,29 +19,30 @@ type DecryptionShare struct {
 func (ds *DecryptionShare) Verify(pk *PubKey) error {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
-
-	fourZ := new(big.Int).Mul(ds.z, big.NewInt(4))
-	cTo4 := new(big.Int).Exp(ds.c, fourZ, nToSPlusOne)
-	ciTo2 := new(big.Int).Exp(ds.c, two, nToSPlusOne)
+	cTo4 := new(big.Int).Exp(ds.c, big.NewInt(4), nToSPlusOne)
+	cTo4z := new(big.Int).Exp(cTo4, ds.z, nToSPlusOne)
+	ciTo2 := new(big.Int).Exp(ds.Ci, two, nToSPlusOne)
 	minusE := new(big.Int).Neg(ds.e)
 	minusTwoE := new(big.Int).Mul(minusE, two)
 	ciToMinus2e := new(big.Int).Exp(ds.Ci, minusTwoE, nToSPlusOne)
-	a := new(big.Int).Mul(cTo4, ciToMinus2e)
+	a := new(big.Int).Mul(cTo4z, ciToMinus2e)
+	a.Mod(a, nToSPlusOne)
 
 	vToZ := new(big.Int).Exp(ds.v, ds.z, nToSPlusOne)
 	viToMinusE := new(big.Int).Exp(ds.vi, minusE, nToSPlusOne)
 	b := new(big.Int).Mul(vToZ, viToMinusE)
+	b.Mod(b, nToSPlusOne)
 
 	hash := sha256.New()
 	hash.Write(a.Bytes())
 	hash.Write(b.Bytes())
 	hash.Write(cTo4.Bytes())
 	hash.Write(ciTo2.Bytes())
-	e := hash.Sum(nil)
+	eBytes := hash.Sum(nil)
 
-	bigE := new(big.Int).SetBytes(e)
+	e := new(big.Int).SetBytes(eBytes)
 
-	if bigE.Cmp(ds.e) != 0 {
+	if e.Cmp(ds.e) != 0 {
 		return fmt.Errorf("zkproof failed")
 	}
 	return nil

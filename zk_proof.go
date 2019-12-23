@@ -22,16 +22,17 @@ type EncryptZK struct {
 // MulZK represents a ZKProof related to the multiplication
 // of an encrypted value by a constant.
 type MulZK struct {
-	ca, c, d, a, b, w, y, z, u *big.Int
+	ca, c, d, a, b, w, y, z *big.Int
 }
 
 // Verify verifies the Encryption ZKProof.
 func (zk *EncryptZK) Verify(pk *PubKey) error {
 
-	n := pk.N
 	cache := pk.Cache()
-	nPlusOne := new(big.Int).Add(n, one)
+	nPlusOne := cache.NPlusOne
 	nToSPlusOne := cache.NToSPlusOne
+	nToS := cache.NToS
+
 
 	hash := sha256.New()
 	hash.Write(zk.c.Bytes())
@@ -42,20 +43,19 @@ func (zk *EncryptZK) Verify(pk *PubKey) error {
 	// (n+1)^w % n^(s+1)
 	nPlusOneToW := new(big.Int).Exp(nPlusOne, zk.w, nToSPlusOne)
 	// z^n % n^(s+1)
-	zToN := new(big.Int).Exp(zk.z, n, nToSPlusOne)
-
+	zToN := new(big.Int).Exp(zk.z, nToS, nToSPlusOne)
 	// (n+1)^w*z^n % n^(s+1)
-	left := new(big.Int).Mul(nPlusOneToW, zToN)
-	left.Mod(left, nToSPlusOne)
+	left := new(big.Int)
+	left.Mul(nPlusOneToW, zToN).Mod(left, nToSPlusOne)
 
 	// c^e % n^(s+1)
 	cToE := new(big.Int).Exp(zk.c, e, nToSPlusOne)
 	// b*c^e % n^(s+1)
-	right := new(big.Int).Mul(zk.b, cToE)
-	right.Mod(right, nToSPlusOne)
+	right := new(big.Int)
+	right.Mul(zk.b, cToE).Mod(right, nToSPlusOne)
 
 	if left.Cmp(right) != 0 {
-		return fmt.Errorf("verification failed")
+		return fmt.Errorf("zkproof failed")
 	}
 	return nil
 }
@@ -64,9 +64,9 @@ func (zk *EncryptZK) Verify(pk *PubKey) error {
 func (zk *MulZK) Verify(pk *PubKey) error {
 
 	cache := pk.Cache()
-	nPlusOne := new(big.Int).Add(pk.N, one)
+	nPlusOne := cache.NPlusOne
 	nToSPlusOne := cache.NToSPlusOne
-	n := pk.N
+	nToS := cache.NToS
 
 	hash := sha256.New()
 	hash.Write(zk.ca.Bytes())
@@ -74,29 +74,39 @@ func (zk *MulZK) Verify(pk *PubKey) error {
 	hash.Write(zk.d.Bytes())
 	hash.Write(zk.a.Bytes())
 	hash.Write(zk.b.Bytes())
-	e := hash.Sum(nil)
+	eBytes := hash.Sum(nil)
 
-	bigE := new(big.Int).SetBytes(e)
+	e := new(big.Int).SetBytes(eBytes)
 
-	nPlus1ToW := new(big.Int).Exp(nPlusOne, zk.w, nToSPlusOne)
-	zToN := new(big.Int).Exp(zk.z, n, nToSPlusOne)
-	zk1 := new(big.Int).Mul(nPlus1ToW, zToN)
-	zk1.Mod(zk1, nToSPlusOne)
+	// (n+1)^w % n^(s+1)
+	nPlusOneToW := new(big.Int).Exp(nPlusOne, zk.w, nToSPlusOne)
+	// z^n % n^(s+1)
+	zToN := new(big.Int).Exp(zk.z, nToS, nToSPlusOne)
+	// ((n+1)^w % n^(s+1)) * (z^n % n^(s+1)) % n^(s+1)
+	zk1 := new(big.Int)
+	zk1.Mul(nPlusOneToW, zToN).Mod(zk1, nToSPlusOne)
 
-	cToE := new(big.Int).Exp(zk.c, bigE, nToSPlusOne)
-	zk2 := new(big.Int).Mul(cToE, zk.u)
-	zk2.Mod(zk2, nToSPlusOne)
+	// c^e % n^(s+1)
+	cToE := new(big.Int).Exp(zk.c, e, nToSPlusOne)
+	// b * c^e % n^(s+1)
+	zk2 := new(big.Int)
+	zk2.Mul(cToE, zk.b).Mod(zk2, nToSPlusOne)
 
 	if zk1.Cmp(zk2) != 0 {
 		return fmt.Errorf("zkproof failed")
 	}
 
+	// ca^w % n^(s+1)
 	caToW := new(big.Int).Exp(zk.ca, zk.w, nToSPlusOne)
-	yToN := new(big.Int).Exp(zk.y, n, nToSPlusOne)
-	zk3 := new(big.Int).Mul(caToW, yToN)
-	zk3.Mod(zk3, nToSPlusOne)
+	// (y^n % n^(s+1)
+	yToN := new(big.Int).Exp(zk.y, nToS, nToSPlusOne)
+	// (ca^w % n^(s+1)) * (y^n % n^(s+1)) % n^(s+1)
+	zk3 := new(big.Int)
+	zk3.Mul(caToW, yToN).Mod(zk3, nToSPlusOne)
 
-	dToE := new(big.Int).Exp(zk.d, bigE, nToSPlusOne)
+	// d^e % n^(s+1)
+	dToE := new(big.Int).Exp(zk.d, e, nToSPlusOne)
+	// a*d^e % n^(s+1)
 	zk4 := new(big.Int).Mul(dToE, zk.a)
 	zk4.Mod(zk4, nToSPlusOne)
 

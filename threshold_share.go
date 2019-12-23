@@ -42,13 +42,7 @@ func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 		return
 	}
 
-	ci, err := ts.PartialDecryption(c)
-	if err != nil {
-		return
-	}
-	ciTo2 := new(big.Int).Exp(ci, two, nToSPlusOne)
-
-	numBits := int(ts.S+2)*int(ts.K) + crypto.SHA256.Size()/8
+	numBits := int(ts.S+2)*int(ts.K) + crypto.SHA256.Size()*8
 	r, err := randInt(numBits, ts.RandSource)
 	cTo4 := new(big.Int).Exp(c, big.NewInt(4), nToSPlusOne)
 
@@ -58,17 +52,24 @@ func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 	a := new(big.Int).Exp(cTo4, r, nToSPlusOne)
 	b := new(big.Int).Exp(v, r, nToSPlusOne)
 
+	ci, err := ts.PartialDecryption(c)
+	if err != nil {
+		return
+	}
+	ciTo2 := new(big.Int).Exp(ci, two, nToSPlusOne)
+
+
 	hash := sha256.New()
 	hash.Write(a.Bytes())
 	hash.Write(b.Bytes())
 	hash.Write(cTo4.Bytes())
 	hash.Write(ciTo2.Bytes())
-	e := hash.Sum(nil)
+	eBytes := hash.Sum(nil)
 
-	bigE := new(big.Int).SetBytes(e)
+	e := new(big.Int).SetBytes(eBytes)
 
 	eSiDelta := new(big.Int)
-	eSiDelta.Mul(ts.Si, bigE).Mul(eSiDelta, ts.Delta)
+	eSiDelta.Mul(ts.Si, e).Mul(eSiDelta, ts.Delta)
 	z := new(big.Int).Add(eSiDelta, r)
 
 	ds = &DecryptionShare{
@@ -76,7 +77,7 @@ func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 		vi:    vi,
 		c:     c,
 		Ci:    ci,
-		e:     bigE,
+		e:     e,
 		v:     v,
 		z:     z,
 	}

@@ -49,7 +49,7 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 
 	var q, q1 *big.Int
 	for {
-		q, q1, err := generateSafePrimes(bitSize, randSource)
+		q, q1, err = generateSafePrimes(bitSize, randSource)
 		if err != nil {
 			return
 		}
@@ -61,6 +61,7 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 	n := new(big.Int).Mul(p, q)
 	m := new(big.Int).Mul(p1, q1)
 	nm := new(big.Int).Mul(n, m)
+	nToS := new(big.Int).Exp(n, bigS, nil)
 	nToSPlusOne := new(big.Int).Exp(n, sPlusOne, nil)
 
 	mInv := new(big.Int).ModInverse(m, n)
@@ -81,7 +82,8 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 		if err != nil {
 			return
 		}
-		if one.Cmp(new(big.Int).GCD(nil, nil, r, n)) == 0 {
+		gcd := new(big.Int).GCD(nil, nil, r, n)
+		if one.Cmp(gcd) == 0 {
 			break
 		}
 	}
@@ -91,9 +93,8 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 
 	delta := new(big.Int).MulRange(1, int64(l))
 	deltaSquare := new(big.Int).Mul(delta, delta)
-
-	constant := big.NewInt(4)
-	constant.Mul(constant, deltaSquare).ModInverse(constant, n)
+	constant := new(big.Int)
+	constant.Mul(big.NewInt(4), deltaSquare).ModInverse(constant, nToS)
 
 	keyShares = make([]*KeyShare, l)
 
@@ -109,18 +110,18 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 		RandSource: randSource,
 	}
 
-	var i uint8
-	for i = 0; i < l; i++ {
-		index := i + 1
-		si := poly.eval(big.NewInt(int64(index)))
+	var index uint8
+	for index = 0; index < l; index++ {
+		x := index + 1
+		si := poly.eval(big.NewInt(int64(x)))
 		si.Mod(si, nm)
-		keyShares[i] = &KeyShare{
+		keyShares[index] = &KeyShare{
 			PubKey: pubKey,
-			Index:  index,
+			Index:  x,
 			Si:     si,
 		}
 		deltaSi := new(big.Int).Mul(si, delta)
-		pubKey.Vi[i] = new(big.Int).Exp(v, deltaSi, nToSPlusOne)
+		pubKey.Vi[index] = new(big.Int).Exp(v, deltaSi, nToSPlusOne)
 	}
 	return
 }
