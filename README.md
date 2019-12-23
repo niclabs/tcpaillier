@@ -1,11 +1,11 @@
-# Threshold Paillier Encryption Scheme Implementation
+# Paillier Threshold Encryption Scheme Implementation
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/niclabs/tcpaillier)](https://goreportcard.com/report/github.com/niclabs/tcpaillier)
 [![Build Status](https://travis-ci.org/niclabs/tcpaillier.svg?branch=master)](https://travis-ci.org/niclabs/tcpaillier)
 [![GoDoc](https://godoc.org/github.com/niclabs/tcpaillier?status.svg)](https://godoc.org/github.com/niclabs/tcpaillier)
 
 
-This code is based on the implementation of Threshold Paillier Encryption Scheme from 
+This code is based on the implementation of Paillier Threshold Encryption Scheme from 
 [UTDallas](http://cs.utdallas.edu/dspl/cgi-bin/pailliertoolbox/index.php).
 
 That implementation is based on the
