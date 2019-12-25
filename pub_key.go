@@ -100,10 +100,15 @@ func (pk *PubKey) Encrypt(message []byte) (c *big.Int, proof ZKProof, err error)
 // Add adds an indeterminate number of encrypted values and returns its encrypted sum, or an error
 // if the value cannot be determined.
 func (pk *PubKey) Add(cList ...*big.Int) (sum *big.Int, err error) {
+	if len(cList) == 0 {
+		err = fmt.Errorf("empty encrypted list")
+		return
+	}
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
-	sum = big.NewInt(1)
-	for i, ci := range cList {
+	sum = cList[0]
+	for i := 1; i < len(cList); i++ {
+		ci := cList[i]
 		if ci.Cmp(nToSPlusOne) >= 0 || ci.Cmp(zero) < 1 {
 			err = fmt.Errorf("cAlpha%d must be between 1 (inclusive) and N^(s+1) (exclusive)", i+1)
 			return
