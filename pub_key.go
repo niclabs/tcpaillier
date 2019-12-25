@@ -104,8 +104,8 @@ func (pk *PubKey) Add(cList ...*big.Int) (sum *big.Int, err error) {
 	nToSPlusOne := cache.NToSPlusOne
 	sum = big.NewInt(1)
 	for i, ci := range cList {
-		if ci.Cmp(nToSPlusOne) >= 0 || ci.Cmp(zero) < 0 {
-			err = fmt.Errorf("cAlpha%d must be between 0 (inclusive) and N^(s+1) (exclusive)", i+1)
+		if ci.Cmp(nToSPlusOne) >= 0 || ci.Cmp(zero) < 1 {
+			err = fmt.Errorf("cAlpha%d must be between 1 (inclusive) and N^(s+1) (exclusive)", i+1)
 			return
 		}
 		sum.Mul(sum, ci)
