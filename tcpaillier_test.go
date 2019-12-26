@@ -16,7 +16,7 @@ const bitSize = 512
 
 var twelve = big.NewInt(12)
 var twentyFive = big.NewInt(25)
-var thirtySeven = big.NewInt(37)
+var fortyNine = big.NewInt(49)
 var threeHundred = big.NewInt(300)
 
 func TestGenKeyShares(t *testing.T) {
@@ -78,12 +78,12 @@ func TestPubKey_Encrypt(t *testing.T) {
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
 	if bigDec.Cmp(twelve) != 0 {
-		t.Errorf("messages are different. Decrypted is %s and twelve was %s.", decrypted, twelve)
+		t.Errorf("messages are different. Decrypted is %s and twelve was %s.", bigDec, twelve)
 		return
 	}
 }
 
-func TestPubKey_Sum(t *testing.T) {
+func TestPubKey_Add(t *testing.T) {
 	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
 		t.Errorf("%v", err)
@@ -108,7 +108,7 @@ func TestPubKey_Sum(t *testing.T) {
 		return
 	}
 
-	encryptedSum, err := pk.Add(encrypted, encrypted2)
+	encryptedSum, err := pk.Add(encrypted, encrypted2, encrypted)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -133,8 +133,8 @@ func TestPubKey_Sum(t *testing.T) {
 		return
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
-	if bigDec.Cmp(thirtySeven) != 0 {
-		t.Errorf("messages are different. Decrypted is %s but should have been %s.", decrypted, thirtySeven)
+	if bigDec.Cmp(fortyNine) != 0 {
+		t.Errorf("messages are different. Decrypted is %d but should have been %s.", bigDec, fortyNine)
 		return
 	}
 }
@@ -186,7 +186,7 @@ func TestPubKey_Multiply(t *testing.T) {
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
 	if bigDec.Cmp(threeHundred) != 0 {
-		t.Errorf("messages are different. Decrypted is %s but should have been %s.", decrypted, threeHundred)
+		t.Errorf("messages are different. Decrypted is %d but should have been %s.", bigDec, threeHundred)
 		return
 	}
 }
