@@ -423,7 +423,7 @@ func TestPubKey_OverflowAdd(t *testing.T) {
 	}
 }
 
-func ExampleAdd() {
+func ExamplePubKey_Add() {
 	// First, we create the shares with the parameters provided.
 	shares, pk, err := tcpaillier.NewKey(512, 1, 5, 3, rand.Reader)
 	if err != nil {
@@ -474,7 +474,7 @@ func ExampleAdd() {
 	// Output: 37
 }
 
-func ExampleMultiply() {
+func ExamplePubKey_Multiply() {
 	// First, we create the shares with the parameters provided.
 	shares, pk, err := tcpaillier.NewKey(512, 1, 5, 3, rand.Reader)
 	if err != nil {
