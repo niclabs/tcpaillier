@@ -191,7 +191,7 @@ func TestPubKey_Multiply(t *testing.T) {
 	}
 }
 
-func TestPubKey_RandSum(t *testing.T) {
+func TestPubKey_RandAdd(t *testing.T) {
 	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
 		t.Errorf("%v", err)
@@ -317,6 +317,55 @@ func TestPubKey_RandMul(t *testing.T) {
 	}
 }
 
+func TestPubKey_OverflowAdd(t *testing.T) {
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	maxRand := new(big.Int)
+	maxRand.SetBit(maxRand, pk.N.BitLen(), 1)
+	encrypted, zk, err := pk.Encrypt(maxRand.Bytes())
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying first encryption ZKProof: %v", err)
+		return
+	}
+	sum := new(big.Int).Add(maxRand, maxRand)
+	sum.Mod(sum, pk.N)
+	encryptedSum, err := pk.Add(encrypted, encrypted)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	decryptShares := make([]*tcpaillier.DecryptionShare, l)
+	for i, share := range shares {
+		decryptShare, err := share.DecryptProof(encryptedSum)
+		if err != nil {
+			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
+			return
+		}
+		if err := decryptShare.Verify(pk); err != nil {
+			t.Errorf("error verifying decryption ZKProof: %v", err)
+			return
+		}
+		decryptShares[i] = decryptShare
+	}
+	decrypted, err := pk.CombineShares(decryptShares...)
+	if err != nil {
+		t.Errorf("cannot combine shares: %v", err)
+		return
+	}
+	bigDec := new(big.Int).SetBytes(decrypted)
+	if bigDec.Cmp(sum) != 0 {
+		t.Errorf("messages are different:\nmax =%s\ndec=%s\nexp=%s\nn  =%s\n", maxRand, sum, bigDec, pk.N)
+		return
+	}
+}
+
 func TestPubKey_OverflowMul(t *testing.T) {
 	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
@@ -374,15 +423,19 @@ func TestPubKey_OverflowMul(t *testing.T) {
 	}
 }
 
-func TestPubKey_OverflowAdd(t *testing.T) {
+func TestPubKey_FixedAdd(t *testing.T) {
 	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
 	}
-	maxRand := new(big.Int)
-	maxRand.SetBit(maxRand, pk.N.BitLen(), 1)
-	encrypted, zk, err := pk.Encrypt(maxRand.Bytes())
+	maxRand := new(big.Int).Rsh(pk.N, 1)
+	rand1, err := rand.Int(rand.Reader, maxRand)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	encrypted, zk, err := pk.EncryptFixed(rand1.Bytes(), big.NewInt(1))
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -391,13 +444,40 @@ func TestPubKey_OverflowAdd(t *testing.T) {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
-	sum := new(big.Int).Add(maxRand, maxRand)
-	sum.Mod(sum, pk.N)
-	encryptedMul, err := pk.Add(encrypted, encrypted)
+	rand2, err := rand.Int(rand.Reader, maxRand)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
 	}
+	encrypted2, zk, err := pk.EncryptFixed(rand2.Bytes(), big.NewInt(1))
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying second encryption ZKProof: %v", err)
+		return
+	}
+
+	encryptedSum, err := pk.Add(encrypted, encrypted2)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+
+	encryptedMul, zkp, err := pk.Multiply(encryptedSum, twelve)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zkp.Verify(pk); err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+
+	randMul := new(big.Int).Add(rand1, rand2)
+	randMul.Mul(randMul, twelve).Mod(randMul, pk.N)
+
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
 		decryptShare, err := share.DecryptProof(encryptedMul)
@@ -417,8 +497,8 @@ func TestPubKey_OverflowAdd(t *testing.T) {
 		return
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
-	if bigDec.Cmp(sum) != 0 {
-		t.Errorf("messages are different:\nmax =%s\ndec=%s\nexp=%s\nn  =%s\n", maxRand, sum, bigDec, pk.N)
+	if bigDec.Cmp(randMul) != 0 {
+		t.Errorf("messages are different:\nr1 =%s\nr2 =%s\ndec=%s\nexp=%s\nn  =%s\n", rand1, rand2, randMul, bigDec, pk.N)
 		return
 	}
 }
