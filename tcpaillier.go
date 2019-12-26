@@ -10,7 +10,7 @@ import (
 	"math/big"
 )
 
-// NewKey returns a list of l keyshares, with a threshold of
+// NewKey returns a list of l keyshares of bitSize bits of length, with a threshold of
 // k and using an S parameter of s in Paillier. It uses randSource
 // as a random source. If randSource is undefined, it uses crypto/rand
 // reader.
@@ -39,17 +39,20 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 		return
 	}
 
+	pPrimeSize := (bitSize + 1) / 2
+	qPrimeSize := bitSize - pPrimeSize - 1
+
 	bigS := big.NewInt(int64(s))
 	sPlusOne := new(big.Int).Add(bigS, one)
 
-	p, p1, err := generateSafePrimes(bitSize, randSource)
+	p, p1, err := generateSafePrimes(pPrimeSize, randSource)
 	if err != nil {
 		return
 	}
 
 	var q, q1 *big.Int
 	for {
-		q, q1, err = generateSafePrimes(bitSize, randSource)
+		q, q1, err = generateSafePrimes(qPrimeSize, randSource)
 		if err != nil {
 			return
 		}
