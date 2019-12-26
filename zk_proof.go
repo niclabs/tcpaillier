@@ -33,7 +33,6 @@ func (zk *EncryptZK) Verify(pk *PubKey) error {
 	nToSPlusOne := cache.NToSPlusOne
 	nToS := cache.NToS
 
-
 	hash := sha256.New()
 	hash.Write(zk.c.Bytes())
 	hash.Write(zk.b.Bytes())

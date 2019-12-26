@@ -40,7 +40,6 @@ func TestRandomDev_bitSize(t *testing.T) {
 	}
 }
 
-
 func TestGenerateSafePrimes(t *testing.T) {
 
 	pExpected := new(big.Int)

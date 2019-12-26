@@ -58,7 +58,6 @@ func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 	}
 	ciTo2 := new(big.Int).Exp(ci, two, nToSPlusOne)
 
-
 	hash := sha256.New()
 	hash.Write(a.Bytes())
 	hash.Write(b.Bytes())
