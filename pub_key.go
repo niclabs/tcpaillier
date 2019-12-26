@@ -88,14 +88,9 @@ func (pk *PubKey) Encrypt(message []byte) (c *big.Int, proof ZKProof, err error)
 	return pk.EncryptFixed(message, r)
 }
 
-// Encrypt encrypts a message and returns its encryption as a big Integer cAlpha.
-// It also returns a ZKProof that demonstrates that the encrypted value corresponds to the
-// message. If there is an error, it returns a nil integer as cAlpha.
+// EncryptFixed encrypts a message and returns its encryption as a big Integer cAlpha.
+// It uses a given big.Int r as the random number of the encryption.
 func (pk *PubKey) EncryptFixed(message []byte, r *big.Int) (c *big.Int, proof ZKProof, err error) {
-	r, err = pk.randomModNToSPlusOneStar()
-	if err != nil {
-		return
-	}
 	c, err = pk.encrypt(message, r)
 	if err != nil {
 		return
