@@ -14,10 +14,10 @@ const s = 2
 
 const bitSize = 512
 
-var msg = big.NewInt(12)
-var msg2 = big.NewInt(25)
-var resulSum = big.NewInt(37)
-var resulMul = big.NewInt(300)
+var twelve = big.NewInt(12)
+var twentyFive = big.NewInt(25)
+var thirtySeven = big.NewInt(37)
+var threeHundred = big.NewInt(300)
 
 func TestGenKeyShares(t *testing.T) {
 	shares, _, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
@@ -49,7 +49,7 @@ func TestPubKey_Encrypt(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted, zk, err := pk.Encrypt(msg.Bytes())
+	encrypted, zk, err := pk.Encrypt(twelve.Bytes())
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -77,8 +77,8 @@ func TestPubKey_Encrypt(t *testing.T) {
 		return
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
-	if bigDec.Cmp(msg) != 0 {
-		t.Errorf("messages are different. Decrypted is %s and msg was %s.", decrypted, msg)
+	if bigDec.Cmp(twelve) != 0 {
+		t.Errorf("messages are different. Decrypted is %s and twelve was %s.", decrypted, twelve)
 		return
 	}
 }
@@ -89,7 +89,7 @@ func TestPubKey_EncryptSum(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted, zk, err := pk.Encrypt(msg.Bytes())
+	encrypted, zk, err := pk.Encrypt(twelve.Bytes())
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -98,7 +98,7 @@ func TestPubKey_EncryptSum(t *testing.T) {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		//return
 	}
-	encrypted2, zk, err := pk.Encrypt(msg2.Bytes())
+	encrypted2, zk, err := pk.Encrypt(twentyFive.Bytes())
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -133,8 +133,8 @@ func TestPubKey_EncryptSum(t *testing.T) {
 		return
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
-	if bigDec.Cmp(resulSum) != 0 {
-		t.Errorf("messages are different. Decrypted is %s and msg was %s.", decrypted, msg)
+	if bigDec.Cmp(thirtySeven) != 0 {
+		t.Errorf("messages are different. Decrypted is %s and twelve was %s.", decrypted, twelve)
 		return
 	}
 }
@@ -145,9 +145,9 @@ func TestPubKey_EncryptMul(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted, zk, err := pk.Encrypt(msg.Bytes())
+	encrypted, zk, err := pk.Encrypt(twelve.Bytes())
 	if err != nil {
-		t.Errorf("error encrypting msg: %v", err)
+		t.Errorf("error encrypting twelve: %v", err)
 		return
 	}
 	if err := zk.Verify(pk); err != nil {
@@ -155,9 +155,9 @@ func TestPubKey_EncryptMul(t *testing.T) {
 		//return
 	}
 
-	encryptedMul, proof, err := pk.Multiply(encrypted, msg2)
+	encryptedMul, proof, err := pk.Multiply(encrypted, twentyFive)
 	if err != nil {
-		t.Errorf("Error multiplying msg for constant %s: %v", msg2, err)
+		t.Errorf("Error multiplying twelve for constant %s: %v", twentyFive, err)
 		return
 	}
 
@@ -185,19 +185,110 @@ func TestPubKey_EncryptMul(t *testing.T) {
 		return
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
-	if bigDec.Cmp(resulMul) != 0 {
-		t.Errorf("messages are different. Decrypted is %s and msg was %s.", decrypted, msg)
+	if bigDec.Cmp(threeHundred) != 0 {
+		t.Errorf("messages are different. Decrypted is %s and twelve was %s.", decrypted, twelve)
 		return
 	}
 }
 
-func Example() {
-	shares, _, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+func ExampleAdd() {
+	// First, we create the shares with the parameters provided.
+	shares, pk, err := tcpaillier.NewKey(512, 1, 5, 3, rand.Reader)
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
 
-	if len(shares) < l {
-		panic(fmt.Errorf("length of shares is %d instead of %d", len(shares), l))
+	// Now we encrypt two values: 12 and 25
+	encTwelve, zk, err := pk.Encrypt(big.NewInt(12).Bytes())
+	if err != nil {
+		panic(err)
 	}
+	if err := zk.Verify(pk); err != nil {
+		panic(err)
+	}
+	encTwentyFive, zk, err := pk.Encrypt(big.NewInt(25).Bytes())
+	if err != nil {
+		panic(err)
+	}
+
+	// We sum them using Add
+	thirtySevenSum, err := pk.Add(encTwelve, encTwentyFive)
+	if err != nil {
+		panic(err)
+	}
+
+	// We decrypt them with our shares
+	decryptShares := make([]*tcpaillier.DecryptionShare, l)
+	for i, share := range shares {
+		decryptShare, err := share.DecryptProof(thirtySevenSum)
+		if err != nil {
+			panic(err)
+		}
+		if err := decryptShare.Verify(pk); err != nil {
+			panic(err)
+		}
+		decryptShares[i] = decryptShare
+	}
+
+	// We combine the shares and get the decrypted and summed value
+	decrypted, err := pk.CombineShares(decryptShares...)
+	if err != nil {
+		panic(err)
+	}
+
+	// It should be 37
+	bigDec := new(big.Int).SetBytes(decrypted)
+	fmt.Printf("%s", bigDec)
+	// Output: 37
+}
+
+func ExampleMultiply() {
+	// First, we create the shares with the parameters provided.
+	shares, pk, err := tcpaillier.NewKey(512, 1, 5, 3, rand.Reader)
+	if err != nil {
+		panic(fmt.Sprintf("%v", err))
+	}
+
+	// Now we encrypt two values: 12 and 25
+	encTwelve, zk, err := pk.Encrypt(big.NewInt(12).Bytes())
+	if err != nil {
+		panic(err)
+	}
+	if err := zk.Verify(pk); err != nil {
+		panic(err)
+	}
+
+	// We multiply them
+	thirtySevenSum, zkp, err := pk.Multiply(encTwelve, big.NewInt(25))
+	if err != nil {
+		panic(err)
+	}
+
+	if err := zkp.Verify(pk); err != nil {
+		panic(err)
+	}
+
+	// We decrypt them with our shares
+	decryptShares := make([]*tcpaillier.DecryptionShare, l)
+	for i, share := range shares {
+		decryptShare, err := share.DecryptProof(thirtySevenSum)
+		if err != nil {
+			panic(err)
+		}
+		if err := decryptShare.Verify(pk); err != nil {
+			panic(err)
+		}
+		decryptShares[i] = decryptShare
+	}
+
+	// We combine the shares and get the decrypted value
+	decrypted, err := pk.CombineShares(decryptShares...)
+	if err != nil {
+		panic(err)
+	}
+
+	// It should be 300
+	bigDec := new(big.Int).SetBytes(decrypted)
+	fmt.Printf("%s", bigDec)
+	// Output: 300
 }
