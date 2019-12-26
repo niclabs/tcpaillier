@@ -111,7 +111,7 @@ func (pk *PubKey) Add(cList ...*big.Int) (sum *big.Int, err error) {
 	}
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
-	sum = cList[0]
+	sum = new(big.Int).Set(cList[0])
 	for i := 1; i < len(cList); i++ {
 		ci := cList[i]
 		if ci.Cmp(nToSPlusOne) >= 0 || ci.Cmp(zero) < 1 {
