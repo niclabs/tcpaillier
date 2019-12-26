@@ -58,8 +58,7 @@ func (pk *PubKey) Cache() *cached {
 	return pk.cached
 }
 
-func (pk *PubKey) encrypt(msg []byte, r *big.Int) (c *big.Int, err error) {
-	m := new(big.Int).SetBytes(msg)
+func (pk *PubKey) encrypt(msg, r *big.Int) (c *big.Int, err error) {
 	cache := pk.Cache()
 	// n+1
 	nPlusOne := cache.NPlusOne
@@ -68,6 +67,7 @@ func (pk *PubKey) encrypt(msg []byte, r *big.Int) (c *big.Int, err error) {
 	// n^(s+1)
 	nToSPlusOne := cache.NToSPlusOne
 	// (n+1)^m % n^(s+1)
+	m := new(big.Int).Mod(msg, nToSPlusOne)
 	nPlusOneToM := new(big.Int).Exp(nPlusOne, m, nToSPlusOne)
 	// r^(n^s) % n^(s+1)
 	rToNToS := new(big.Int).Exp(r, nToS, nToSPlusOne)
@@ -80,7 +80,7 @@ func (pk *PubKey) encrypt(msg []byte, r *big.Int) (c *big.Int, err error) {
 // Encrypt encrypts a message and returns its encryption as a big Integer cAlpha.
 // It also returns a ZKProof that demonstrates that the encrypted value corresponds to the
 // message. If there is an error, it returns a nil integer as cAlpha.
-func (pk *PubKey) Encrypt(message []byte) (c *big.Int, proof ZKProof, err error) {
+func (pk *PubKey) Encrypt(message *big.Int) (c *big.Int, proof ZKProof, err error) {
 	r, err := pk.randomModNToSPlusOneStar()
 	if err != nil {
 		return
@@ -90,7 +90,7 @@ func (pk *PubKey) Encrypt(message []byte) (c *big.Int, proof ZKProof, err error)
 
 // EncryptFixed encrypts a message and returns its encryption as a big Integer cAlpha.
 // It uses a given big.Int r as the random number of the encryption.
-func (pk *PubKey) EncryptFixed(message []byte, r *big.Int) (c *big.Int, proof ZKProof, err error) {
+func (pk *PubKey) EncryptFixed(message, r *big.Int) (c *big.Int, proof ZKProof, err error) {
 	c, err = pk.encrypt(message, r)
 	if err != nil {
 		return
@@ -138,7 +138,7 @@ func (pk *PubKey) multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err
 	if err != nil {
 		return
 	}
-	zero, err := pk.encrypt(new(big.Int).Bytes(), gamma)
+	zero, err := pk.encrypt(new(big.Int), gamma)
 	mul, err = pk.Add(preMul, zero)
 	return
 }
@@ -151,7 +151,7 @@ func (pk *PubKey) Multiply(encrypted *big.Int, constant *big.Int) (d *big.Int, p
 	if err != nil {
 		return
 	}
-	cAlpha, err := pk.encrypt(constant.Bytes(), s)
+	cAlpha, err := pk.encrypt(constant, s)
 	if err != nil {
 		return
 	}
@@ -161,7 +161,7 @@ func (pk *PubKey) Multiply(encrypted *big.Int, constant *big.Int) (d *big.Int, p
 
 // CombineShares joins partial decryptions of a value and returns a decrypted value.
 // It checks that the number of values is equal or more than the threshold.
-func (pk *PubKey) CombineShares(shares ...*DecryptionShare) (dec []byte, err error) {
+func (pk *PubKey) CombineShares(shares ...*DecryptionShare) (dec *big.Int, err error) {
 	n := pk.N
 	k := int(pk.K)
 	cache := pk.Cache()
@@ -205,17 +205,17 @@ func (pk *PubKey) CombineShares(shares ...*DecryptionShare) (dec []byte, err err
 	l.Sub(cPrime, one).Div(l, n)
 	bigDec := new(big.Int).Mul(pk.Constant, l)
 	bigDec.Mod(bigDec, n)
-	dec = bigDec.Bytes()
+	dec = bigDec
 	return
 }
 
-func (pk *PubKey) encryptionProof(message []byte, c, s *big.Int) (zk ZKProof, err error) {
+func (pk *PubKey) encryptionProof(message *big.Int, c, s *big.Int) (zk ZKProof, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	nPlusOne := cache.NPlusOne
 	nToS := cache.NToS
 
-	alpha := new(big.Int).SetBytes(message)
+	alpha := new(big.Int).Set(message)
 
 	x, err := pk.randomModN()
 	if err != nil {
