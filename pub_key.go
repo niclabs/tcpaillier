@@ -58,7 +58,7 @@ func (pk *PubKey) Cache() *cached {
 	return pk.cached
 }
 
-func (pk *PubKey) encrypt(msg []byte) (c, r *big.Int, err error) {
+func (pk *PubKey) encrypt(msg []byte, r *big.Int) (c *big.Int, err error) {
 	m := new(big.Int).SetBytes(msg)
 	cache := pk.Cache()
 	// n+1
@@ -67,11 +67,6 @@ func (pk *PubKey) encrypt(msg []byte) (c, r *big.Int, err error) {
 	nToS := cache.NToS
 	// n^(s+1)
 	nToSPlusOne := cache.NToSPlusOne
-
-	r, err = pk.randomModNToSPlusOneStar()
-	if err != nil {
-		return
-	}
 	// (n+1)^m % n^(s+1)
 	nPlusOneToM := new(big.Int).Exp(nPlusOne, m, nToSPlusOne)
 	// r^(n^s) % n^(s+1)
@@ -86,7 +81,22 @@ func (pk *PubKey) encrypt(msg []byte) (c, r *big.Int, err error) {
 // It also returns a ZKProof that demonstrates that the encrypted value corresponds to the
 // message. If there is an error, it returns a nil integer as cAlpha.
 func (pk *PubKey) Encrypt(message []byte) (c *big.Int, proof ZKProof, err error) {
-	c, r, err := pk.encrypt(message)
+	r, err := pk.randomModNToSPlusOneStar()
+	if err != nil {
+		return
+	}
+	return pk.EncryptFixed(message, r)
+}
+
+// Encrypt encrypts a message and returns its encryption as a big Integer cAlpha.
+// It also returns a ZKProof that demonstrates that the encrypted value corresponds to the
+// message. If there is an error, it returns a nil integer as cAlpha.
+func (pk *PubKey) EncryptFixed(message []byte, r *big.Int) (c *big.Int, proof ZKProof, err error) {
+	r, err = pk.randomModNToSPlusOneStar()
+	if err != nil {
+		return
+	}
+	c, err = pk.encrypt(message, r)
 	if err != nil {
 		return
 	}
@@ -129,7 +139,11 @@ func (pk *PubKey) multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err
 		return
 	}
 	preMul := new(big.Int).Exp(c, alpha, nToSPlusOne)
-	zero, gamma, err := pk.encrypt(new(big.Int).Bytes())
+	gamma, err = pk.randomModNToSPlusOneStar()
+	if err != nil {
+		return
+	}
+	zero, err := pk.encrypt(new(big.Int).Bytes(), gamma)
 	mul, err = pk.Add(preMul, zero)
 	return
 }
@@ -138,7 +152,11 @@ func (pk *PubKey) multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err
 // multiplication. It returns an error if it is not able to multiply the value.
 func (pk *PubKey) Multiply(c *big.Int, alpha *big.Int) (d *big.Int, proof ZKProof, err error) {
 	d, gamma, err := pk.multiply(c, alpha)
-	cAlpha, s, err := pk.encrypt(alpha.Bytes())
+	s, err := pk.randomModNToSPlusOneStar()
+	if err != nil {
+		return
+	}
+	cAlpha, err := pk.encrypt(alpha.Bytes(), s)
 	if err != nil {
 		return
 	}
