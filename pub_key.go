@@ -145,17 +145,17 @@ func (pk *PubKey) multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err
 
 // Multiply multiplies an encrypted value by a constant and returns it with a ZKProof of the
 // multiplication. It returns an error if it is not able to multiply the value.
-func (pk *PubKey) Multiply(c *big.Int, alpha *big.Int) (d *big.Int, proof ZKProof, err error) {
-	d, gamma, err := pk.multiply(c, alpha)
+func (pk *PubKey) Multiply(encrypted *big.Int, constant *big.Int) (d *big.Int, proof ZKProof, err error) {
+	d, gamma, err := pk.multiply(encrypted, constant)
 	s, err := pk.randomModNToSPlusOneStar()
 	if err != nil {
 		return
 	}
-	cAlpha, err := pk.encrypt(alpha.Bytes(), s)
+	cAlpha, err := pk.encrypt(constant.Bytes(), s)
 	if err != nil {
 		return
 	}
-	proof, err = pk.multiplicationProof(c, cAlpha, d, alpha, s, gamma)
+	proof, err = pk.multiplicationProof(encrypted, cAlpha, d, constant, s, gamma)
 	return
 }
 

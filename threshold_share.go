@@ -43,7 +43,7 @@ func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 	}
 
 	numBits := int(ts.S+2)*int(ts.K) + crypto.SHA256.Size()*8
-	r, err := randInt(numBits, ts.RandSource)
+	r, err := RandomInt(numBits, ts.RandSource)
 	cTo4 := new(big.Int).Exp(c, big.NewInt(4), nToSPlusOne)
 
 	v := ts.V

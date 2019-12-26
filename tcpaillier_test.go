@@ -56,7 +56,7 @@ func TestPubKey_Encrypt(t *testing.T) {
 	}
 	if err := zk.Verify(pk); err != nil {
 		t.Errorf("error verifying encryption ZKProof: %v", err)
-		//return
+		return
 	}
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
@@ -83,7 +83,7 @@ func TestPubKey_Encrypt(t *testing.T) {
 	}
 }
 
-func TestPubKey_EncryptSum(t *testing.T) {
+func TestPubKey_Sum(t *testing.T) {
 	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
 		t.Errorf("%v", err)
@@ -96,7 +96,7 @@ func TestPubKey_EncryptSum(t *testing.T) {
 	}
 	if err := zk.Verify(pk); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
-		//return
+		return
 	}
 	encrypted2, zk, err := pk.Encrypt(twentyFive.Bytes())
 	if err != nil {
@@ -105,7 +105,7 @@ func TestPubKey_EncryptSum(t *testing.T) {
 	}
 	if err := zk.Verify(pk); err != nil {
 		t.Errorf("error verifying second encryption ZKProof: %v", err)
-		//return
+		return
 	}
 
 	encryptedSum, err := pk.Add(encrypted, encrypted2)
@@ -134,12 +134,12 @@ func TestPubKey_EncryptSum(t *testing.T) {
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
 	if bigDec.Cmp(thirtySeven) != 0 {
-		t.Errorf("messages are different. Decrypted is %s and twelve was %s.", decrypted, twelve)
+		t.Errorf("messages are different. Decrypted is %s but should have been %s.", decrypted, thirtySeven)
 		return
 	}
 }
 
-func TestPubKey_EncryptMul(t *testing.T) {
+func TestPubKey_Multiply(t *testing.T) {
 	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
 	if err != nil {
 		t.Errorf("%v", err)
@@ -152,7 +152,7 @@ func TestPubKey_EncryptMul(t *testing.T) {
 	}
 	if err := zk.Verify(pk); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
-		//return
+		return
 	}
 
 	encryptedMul, proof, err := pk.Multiply(encrypted, twentyFive)
@@ -186,7 +186,239 @@ func TestPubKey_EncryptMul(t *testing.T) {
 	}
 	bigDec := new(big.Int).SetBytes(decrypted)
 	if bigDec.Cmp(threeHundred) != 0 {
-		t.Errorf("messages are different. Decrypted is %s and twelve was %s.", decrypted, twelve)
+		t.Errorf("messages are different. Decrypted is %s but should have been %s.", decrypted, threeHundred)
+		return
+	}
+}
+
+func TestPubKey_RandSum(t *testing.T) {
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	maxRand := new(big.Int).Rsh(pk.N, 1)
+	rand1, err := rand.Int(rand.Reader, maxRand)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	encrypted, zk, err := pk.Encrypt(rand1.Bytes())
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying first encryption ZKProof: %v", err)
+		return
+	}
+	rand2, err := rand.Int(rand.Reader, maxRand)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	encrypted2, zk, err := pk.Encrypt(rand2.Bytes())
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying second encryption ZKProof: %v", err)
+		return
+	}
+	randSum := new(big.Int).Add(rand1, rand2)
+
+	encryptedSum, err := pk.Add(encrypted, encrypted2)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+
+	decryptShares := make([]*tcpaillier.DecryptionShare, l)
+	for i, share := range shares {
+		decryptShare, err := share.DecryptProof(encryptedSum)
+		if err != nil {
+			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
+			return
+		}
+		if err := decryptShare.Verify(pk); err != nil {
+			t.Errorf("error verifying decryption ZKProof: %v", err)
+			return
+		}
+		decryptShares[i] = decryptShare
+	}
+	decrypted, err := pk.CombineShares(decryptShares...)
+	if err != nil {
+		t.Errorf("cannot combine shares: %v", err)
+		return
+	}
+	bigDec := new(big.Int).SetBytes(decrypted)
+	if bigDec.Cmp(randSum) != 0 {
+		t.Errorf("messages are different:\nr1 =%s\nr2 =%s\ndec=%s\nexp=%s\nn  =%s\n", rand1, rand2, randSum, bigDec, pk.N)
+		return
+	}
+}
+
+func TestPubKey_RandMul(t *testing.T) {
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	maxRand := new(big.Int).Rsh(pk.N, uint(pk.N.BitLen()/2))
+	rand1, err := rand.Int(rand.Reader, maxRand)
+	encrypted, zk, err := pk.Encrypt(rand1.Bytes())
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying first encryption ZKProof: %v", err)
+		return
+	}
+	rand2, err := rand.Int(rand.Reader, maxRand)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	encryptedMul, zk, err := pk.Multiply(encrypted, rand2)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying multiplication ZKProof: %v", err)
+		return
+	}
+	randSum := new(big.Int).Mul(rand1, rand2)
+	randSum.Mod(randSum, pk.N)
+	decryptShares := make([]*tcpaillier.DecryptionShare, l)
+	for i, share := range shares {
+		decryptShare, err := share.DecryptProof(encryptedMul)
+		if err != nil {
+			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
+			return
+		}
+		if err := decryptShare.Verify(pk); err != nil {
+			t.Errorf("error verifying decryption ZKProof: %v", err)
+			return
+		}
+		decryptShares[i] = decryptShare
+	}
+	decrypted, err := pk.CombineShares(decryptShares...)
+	if err != nil {
+		t.Errorf("cannot combine shares: %v", err)
+		return
+	}
+	bigDec := new(big.Int).SetBytes(decrypted)
+	if bigDec.Cmp(randSum) != 0 {
+		t.Errorf("messages are different:\nr1 =%s\nr2 =%s\ndec=%s\nexp=%s\nn  =%s\n", rand1, rand2, randSum, bigDec, pk.N)
+		return
+	}
+}
+
+func TestPubKey_OverflowMul(t *testing.T) {
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	maxRand := new(big.Int)
+	maxRand.SetBit(maxRand, pk.N.BitLen(), 1)
+	encrypted, zk, err := pk.Encrypt(maxRand.Bytes())
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying first encryption ZKProof: %v", err)
+		return
+	}
+	mul := new(big.Int).Mul(maxRand, maxRand)
+	mul.Mod(mul, pk.N)
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying second encryption ZKProof: %v", err)
+		return
+	}
+	encryptedMul, zk, err := pk.Multiply(encrypted, maxRand)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying multiplication ZKProof: %v", err)
+		return
+	}
+	decryptShares := make([]*tcpaillier.DecryptionShare, l)
+	for i, share := range shares {
+		decryptShare, err := share.DecryptProof(encryptedMul)
+		if err != nil {
+			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
+			return
+		}
+		if err := decryptShare.Verify(pk); err != nil {
+			t.Errorf("error verifying decryption ZKProof: %v", err)
+			return
+		}
+		decryptShares[i] = decryptShare
+	}
+	decrypted, err := pk.CombineShares(decryptShares...)
+	if err != nil {
+		t.Errorf("cannot combine shares: %v", err)
+		return
+	}
+	bigDec := new(big.Int).SetBytes(decrypted)
+	if bigDec.Cmp(mul) != 0 {
+		t.Errorf("messages are different:\nmax =%s\ndec=%s\nexp=%s\nn  =%s\n", maxRand, mul, bigDec, pk.N)
+		return
+	}
+}
+
+func TestPubKey_OverflowAdd(t *testing.T) {
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	maxRand := new(big.Int)
+	maxRand.SetBit(maxRand, pk.N.BitLen(), 1)
+	encrypted, zk, err := pk.Encrypt(maxRand.Bytes())
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	if err := zk.Verify(pk); err != nil {
+		t.Errorf("error verifying first encryption ZKProof: %v", err)
+		return
+	}
+	sum := new(big.Int).Add(maxRand, maxRand)
+	sum.Mod(sum, pk.N)
+	encryptedMul, err := pk.Add(encrypted, encrypted)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	decryptShares := make([]*tcpaillier.DecryptionShare, l)
+	for i, share := range shares {
+		decryptShare, err := share.DecryptProof(encryptedMul)
+		if err != nil {
+			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
+			return
+		}
+		if err := decryptShare.Verify(pk); err != nil {
+			t.Errorf("error verifying decryption ZKProof: %v", err)
+			return
+		}
+		decryptShares[i] = decryptShare
+	}
+	decrypted, err := pk.CombineShares(decryptShares...)
+	if err != nil {
+		t.Errorf("cannot combine shares: %v", err)
+		return
+	}
+	bigDec := new(big.Int).SetBytes(decrypted)
+	if bigDec.Cmp(sum) != 0 {
+		t.Errorf("messages are different:\nmax =%s\ndec=%s\nexp=%s\nn  =%s\n", maxRand, sum, bigDec, pk.N)
 		return
 	}
 }

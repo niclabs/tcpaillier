@@ -40,19 +40,19 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 	}
 
 	pPrimeSize := (bitSize + 1) / 2
-	qPrimeSize := bitSize - pPrimeSize - 1
+	qPrimeSize := bitSize - pPrimeSize
 
 	bigS := big.NewInt(int64(s))
 	sPlusOne := new(big.Int).Add(bigS, one)
 
-	p, p1, err := generateSafePrimes(pPrimeSize, randSource)
+	p, p1, err := GenerateSafePrimes(pPrimeSize, randSource)
 	if err != nil {
 		return
 	}
 
 	var q, q1 *big.Int
 	for {
-		q, q1, err = generateSafePrimes(qPrimeSize, randSource)
+		q, q1, err = GenerateSafePrimes(qPrimeSize, randSource)
 		if err != nil {
 			return
 		}
@@ -81,7 +81,7 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 	// generate V with Shoup heuristic
 	var r *big.Int
 	for {
-		r, err = randInt(4*bitSize, randSource)
+		r, err = RandomInt(4*bitSize, randSource)
 		if err != nil {
 			return
 		}
