@@ -32,9 +32,9 @@ func (ts *KeyShare) PartialDecryption(c *big.Int) (pd *big.Int, err error) {
 	return
 }
 
-// DecryptProof returns a DecryptionShare, that is composed by a ZKProof and
+// Decrypt returns a DecryptionShare, that is composed by a ZKProof and
 // a partially decrypted value.
-func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
+func (ts *KeyShare) Decrypt(c *big.Int) (ds *DecryptionShare, zk *DecryptShareZK, err error) {
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
@@ -73,12 +73,14 @@ func (ts *KeyShare) DecryptProof(c *big.Int) (ds *DecryptionShare, err error) {
 
 	ds = &DecryptionShare{
 		Index: ts.Index,
-		vi:    vi,
-		c:     c,
 		Ci:    ci,
-		e:     e,
-		v:     v,
-		z:     z,
+	}
+
+	zk = &DecryptShareZK{
+		vi: vi,
+		e:  e,
+		v:  v,
+		z:  z,
 	}
 
 	return

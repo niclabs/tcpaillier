@@ -14,7 +14,6 @@ const utilsTestC = 25
 var R = rand.Reader
 
 // Tests that two consecutive outputs from random dev are different.
-// TODO: Test how much different are the numbers generated
 func TestRandomDev_different(t *testing.T) {
 	rand1, err := RandomInt(utilsTestBitlen, R)
 	if err != nil {
