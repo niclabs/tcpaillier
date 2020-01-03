@@ -54,7 +54,7 @@ func TestPubKey_Encrypt(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying encryption ZKProof: %v", err)
 		return
 	}
@@ -93,7 +93,7 @@ func TestPubKey_Add(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
@@ -102,7 +102,7 @@ func TestPubKey_Add(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted2); err != nil {
 		t.Errorf("error verifying second encryption ZKProof: %v", err)
 		return
 	}
@@ -150,7 +150,7 @@ func TestPubKey_AddNegative(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
@@ -161,7 +161,7 @@ func TestPubKey_AddNegative(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted2); err != nil {
 		t.Errorf("error verifying second encryption ZKProof: %v", err)
 		return
 	}
@@ -210,7 +210,7 @@ func TestPubKey_Multiply(t *testing.T) {
 		t.Errorf("error encrypting twelve: %v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
@@ -221,7 +221,7 @@ func TestPubKey_Multiply(t *testing.T) {
 		return
 	}
 
-	if err := proof.Verify(pk); err != nil {
+	if err := proof.Verify(pk, encryptedMul); err != nil {
 		t.Errorf("Error verifying mulZKProof: %v", err)
 		return
 	}
@@ -267,7 +267,7 @@ func TestPubKey_RandAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
@@ -281,7 +281,7 @@ func TestPubKey_RandAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted2); err != nil {
 		t.Errorf("error verifying second encryption ZKProof: %v", err)
 		return
 	}
@@ -330,7 +330,7 @@ func TestPubKey_RandMul(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
@@ -344,7 +344,7 @@ func TestPubKey_RandMul(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encryptedMul); err != nil {
 		t.Errorf("error verifying multiplication ZKProof: %v", err)
 		return
 	}
@@ -387,7 +387,7 @@ func TestPubKey_OverflowAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
@@ -435,22 +435,18 @@ func TestPubKey_OverflowMul(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
 	mul := new(big.Int).Mul(maxRand, maxRand)
 	mul.Mod(mul, pk.N)
-	if err := zk.Verify(pk); err != nil {
-		t.Errorf("error verifying second encryption ZKProof: %v", err)
-		return
-	}
 	encryptedMul, zk, err := pk.Multiply(encrypted, maxRand)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encryptedMul); err != nil {
 		t.Errorf("error verifying multiplication ZKProof: %v", err)
 		return
 	}
@@ -495,7 +491,7 @@ func TestPubKey_FixedAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted); err != nil {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
@@ -509,7 +505,7 @@ func TestPubKey_FixedAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encrypted2); err != nil {
 		t.Errorf("error verifying second encryption ZKProof: %v", err)
 		return
 	}
@@ -522,11 +518,11 @@ func TestPubKey_FixedAdd(t *testing.T) {
 
 	encryptedMul, zkp, err := pk.Multiply(encryptedSum, twelve)
 	if err != nil {
-		t.Errorf("%v", err)
+		t.Errorf("error verifying addition ZKProof: %v", err)
 		return
 	}
-	if err := zkp.Verify(pk); err != nil {
-		t.Errorf("%v", err)
+	if err := zkp.Verify(pk, encryptedMul); err != nil {
+		t.Errorf("error verifying multiplication ZKProof: %v", err)
 		return
 	}
 
@@ -569,7 +565,7 @@ func ExamplePubKey_Add() {
 	if err != nil {
 		panic(err)
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encTwelve); err != nil {
 		panic(err)
 	}
 	encTwentyFive, zk, err := pk.Encrypt(big.NewInt(25))
@@ -619,7 +615,7 @@ func ExamplePubKey_Multiply() {
 	if err != nil {
 		panic(err)
 	}
-	if err := zk.Verify(pk); err != nil {
+	if err := zk.Verify(pk, encTwelve); err != nil {
 		panic(err)
 	}
 
@@ -629,7 +625,7 @@ func ExamplePubKey_Multiply() {
 		panic(err)
 	}
 
-	if err := zkp.Verify(pk); err != nil {
+	if err := zkp.Verify(pk, thirtySevenSum); err != nil {
 		panic(err)
 	}
 

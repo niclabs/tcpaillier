@@ -251,7 +251,6 @@ func (pk *PubKey) encryptionProof(message *big.Int, c, s *big.Int) (zk ZKProof, 
 	z.Mul(u, sToE).Mul(z, nPlusOneToT).Mod(z, nToSPlusOne)
 
 	zk = &EncryptZK{
-		c: c,
 		b: b,
 		w: w,
 		z: z,
@@ -329,7 +328,6 @@ func (pk *PubKey) multiplicationProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (
 	zk = &MulZK{
 		cAlpha: cAlpha,
 		ca:     ca,
-		d:      d,
 		b:      b,
 		w:      w,
 		z:      z,

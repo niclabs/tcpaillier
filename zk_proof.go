@@ -10,23 +10,23 @@ import (
 type ZKProof interface {
 	// Verify returns nil if the verification of the ZKProof was successful,
 	// and an error if it fails.
-	Verify(pk *PubKey) error
+	Verify(pk *PubKey, value *big.Int) error
 }
 
 // EncryptZK represents a ZKProof related to the encryption
 // of a value.
 type EncryptZK struct {
-	c, b, w, z *big.Int
+	b, w, z *big.Int
 }
 
 // MulZK represents a ZKProof related to the multiplication
 // of an encrypted value by a constant.
 type MulZK struct {
-	ca, cAlpha, d, a, b, w, y, z *big.Int
+	ca, cAlpha, a, b, w, y, z *big.Int
 }
 
 // Verify verifies the Encryption ZKProof.
-func (zk *EncryptZK) Verify(pk *PubKey) error {
+func (zk *EncryptZK) Verify(pk *PubKey, c *big.Int) error {
 
 	cache := pk.Cache()
 	nPlusOne := cache.NPlusOne
@@ -34,7 +34,7 @@ func (zk *EncryptZK) Verify(pk *PubKey) error {
 	nToS := cache.NToS
 
 	hash := sha256.New()
-	hash.Write(zk.c.Bytes())
+	hash.Write(c.Bytes())
 	hash.Write(zk.b.Bytes())
 	eHash := hash.Sum(nil)
 	e := new(big.Int).SetBytes(eHash)
@@ -48,7 +48,7 @@ func (zk *EncryptZK) Verify(pk *PubKey) error {
 	left.Mul(nPlusOneToW, zToN).Mod(left, nToSPlusOne)
 
 	// cAlpha^e % n^(s+1)
-	cToE := new(big.Int).Exp(zk.c, e, nToSPlusOne)
+	cToE := new(big.Int).Exp(c, e, nToSPlusOne)
 	// b*cAlpha^e % n^(s+1)
 	right := new(big.Int)
 	right.Mul(zk.b, cToE).Mod(right, nToSPlusOne)
@@ -60,7 +60,7 @@ func (zk *EncryptZK) Verify(pk *PubKey) error {
 }
 
 // Verify verifies the Multiplication ZKProof.
-func (zk *MulZK) Verify(pk *PubKey) error {
+func (zk *MulZK) Verify(pk *PubKey, d *big.Int) error {
 
 	cache := pk.Cache()
 	nPlusOne := cache.NPlusOne
@@ -70,7 +70,7 @@ func (zk *MulZK) Verify(pk *PubKey) error {
 	hash := sha256.New()
 	hash.Write(zk.ca.Bytes())
 	hash.Write(zk.cAlpha.Bytes())
-	hash.Write(zk.d.Bytes())
+	hash.Write(d.Bytes())
 	hash.Write(zk.a.Bytes())
 	hash.Write(zk.b.Bytes())
 	eBytes := hash.Sum(nil)
@@ -104,7 +104,7 @@ func (zk *MulZK) Verify(pk *PubKey) error {
 	zk3.Mul(caToW, yToNToS).Mod(zk3, nToSPlusOne)
 
 	// d^e % n^(s+1)
-	dToE := new(big.Int).Exp(zk.d, e, nToSPlusOne)
+	dToE := new(big.Int).Exp(d, e, nToSPlusOne)
 	// a*d^e % n^(s+1)
 	zk4 := new(big.Int).Mul(dToE, zk.a)
 	zk4.Mod(zk4, nToSPlusOne)
