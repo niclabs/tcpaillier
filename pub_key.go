@@ -95,7 +95,7 @@ func (pk *PubKey) EncryptFixed(message, r *big.Int) (c *big.Int, proof ZKProof, 
 	if err != nil {
 		return
 	}
-	proof, err = pk.encryptionProof(message, c, r)
+	proof, err = pk.EncryptionProof(message, c, r)
 	if err != nil {
 		return
 	}
@@ -145,8 +145,8 @@ func (pk *PubKey) multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err
 
 // Multiply multiplies an encrypted value by a constant and returns it with a ZKProof of the
 // multiplication. It returns an error if it is not able to multiply the value.
-func (pk *PubKey) Multiply(encrypted *big.Int, constant *big.Int) (d *big.Int, proof ZKProof, err error) {
-	d, gamma, err := pk.multiply(encrypted, constant)
+func (pk *PubKey) Multiply(encrypted *big.Int, constant *big.Int) (result *big.Int, proof ZKProof, err error) {
+	result, gamma, err := pk.multiply(encrypted, constant)
 	s, err := pk.randomModNToSPlusOneStar()
 	if err != nil {
 		return
@@ -155,7 +155,7 @@ func (pk *PubKey) Multiply(encrypted *big.Int, constant *big.Int) (d *big.Int, p
 	if err != nil {
 		return
 	}
-	proof, err = pk.multiplicationProof(encrypted, cAlpha, d, constant, s, gamma)
+	proof, err = pk.MultiplicationProof(encrypted, cAlpha, result, constant, s, gamma)
 	return
 }
 
@@ -209,7 +209,9 @@ func (pk *PubKey) CombineShares(shares ...*DecryptionShare) (dec *big.Int, err e
 	return
 }
 
-func (pk *PubKey) encryptionProof(message *big.Int, c, s *big.Int) (zk ZKProof, err error) {
+// EncryptionProof returns a ZK Proof of an encrypted message c. S is the random number
+// used to encrypt message to c.
+func (pk *PubKey) EncryptionProof(message *big.Int, c, s *big.Int) (zk ZKProof, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	nPlusOne := cache.NPlusOne
@@ -258,7 +260,10 @@ func (pk *PubKey) encryptionProof(message *big.Int, c, s *big.Int) (zk ZKProof, 
 	return
 }
 
-func (pk *PubKey) multiplicationProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (zk ZKProof, err error) {
+// MultiplicationProof returns a ZKProof confirming that d is the result of multiplicate the encrypted
+// value ca by alpha. cAlpha is the encrypted form of the constant using s as random value, while gamma
+// is the random value used to generate d.
+func (pk *PubKey) MultiplicationProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (zk ZKProof, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	nPlusOne := cache.NPlusOne
