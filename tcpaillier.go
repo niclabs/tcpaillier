@@ -1,5 +1,5 @@
-// Package tcpaillier is a Threshold Paillier library, based on the Java Implementation.
-// of Threshold Paillier Toolbox [1].
+// Package tcpaillier is a Threshold PubKey library, based on the Java Implementation.
+// of Threshold PubKey Toolbox [1].
 
 
 // [1] http://www.cs.utdallas.edu/dspl/cgi-bin/pailliertoolbox/index.php
@@ -13,7 +13,7 @@ import (
 )
 
 // NewKey returns a list of l keyshares of bitSize bits of length, with a threshold of
-// k and using an S parameter of s in Paillier. It uses randSource
+// k and using an S parameter of s in PubKey. It uses randSource
 // as a random source. If randSource is undefined, it uses crypto/rand
 // reader.
 func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyShare, pubKey *PubKey, err error) {

@@ -22,7 +22,7 @@ type EncryptZK struct {
 // MulZK represents a ZKProof related to the multiplication
 // of an encrypted value by a constant.
 type MulZK struct {
-	ca, cAlpha, a, b, w, y, z *big.Int
+	cAlpha, a, b, w, y, z *big.Int
 }
 
 // DecryptShareZK represents a ZKProof related to the decryption
@@ -77,9 +77,8 @@ func (zk *EncryptZK) Verify(pk *PubKey, vals ...interface{}) error {
 // Verify verifies the Multiplication ZKProof.
 func (zk *MulZK) Verify(pk *PubKey, vals ...interface{}) error {
 
-
-	if len(vals) != 1 {
-		return fmt.Errorf("the extra value for verification should be only the encrypted value")
+	if len(vals) != 2 {
+		return fmt.Errorf("the extra values for verification should be the result and the encrypted value")
 	}
 
 	d, ok := vals[0].(*big.Int)
@@ -87,13 +86,19 @@ func (zk *MulZK) Verify(pk *PubKey, vals ...interface{}) error {
 		return fmt.Errorf("cannot cast first verification value as a *big.Int")
 	}
 
+	ca, ok := vals[1].(*big.Int)
+	if !ok {
+		return fmt.Errorf("cannot cast first verification value as a *big.Int")
+	}
+
+
 	cache := pk.Cache()
 	nPlusOne := cache.NPlusOne
 	nToSPlusOne := cache.NToSPlusOne
 	nToS := cache.NToS
 
 	hash := sha256.New()
-	hash.Write(zk.ca.Bytes())
+	hash.Write(ca.Bytes())
 	hash.Write(zk.cAlpha.Bytes())
 	hash.Write(d.Bytes())
 	hash.Write(zk.a.Bytes())
@@ -121,7 +126,7 @@ func (zk *MulZK) Verify(pk *PubKey, vals ...interface{}) error {
 	}
 
 	// ca^w % n^(s+1)
-	caToW := new(big.Int).Exp(zk.ca, zk.w, nToSPlusOne)
+	caToW := new(big.Int).Exp(ca, zk.w, nToSPlusOne)
 	// (y^n % n^(s+1)
 	yToNToS := new(big.Int).Exp(zk.y, nToS, nToSPlusOne)
 	// (ca^w % n^(s+1)) * (y^n % n^(s+1)) % n^(s+1)

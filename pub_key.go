@@ -12,7 +12,7 @@ var zero = big.NewInt(0)
 var one = big.NewInt(1)
 var two = big.NewInt(2)
 
-// PubKey represents a Paillier Public Key and its metainformation. It contains a
+// PubKey represents a PubKey Public Key and its metainformation. It contains a
 // cached field, with precomputed values.
 // It also is linked with a random source, used by  the processes that require it.
 type PubKey struct {
@@ -58,7 +58,20 @@ func (pk *PubKey) Cache() *cached {
 	return pk.cached
 }
 
-func (pk *PubKey) encrypt(msg, r *big.Int) (c *big.Int, err error) {
+// Encrypt encrypts a message and returns its encryption as a big Integer c and the random number r used.
+// If there is an error, it returns a nil integer as c.
+func (pk *PubKey) Encrypt(message *big.Int) (c, r *big.Int, err error) {
+	r, err = pk.RandomModNToSPlusOneStar()
+	if err != nil {
+		return
+	}
+	c, err = pk.EncryptFixed(message, r)
+	return
+}
+
+
+// EncryptFixed returns an encrypted value, but without a proof.
+func (pk *PubKey) EncryptFixed(msg, r *big.Int) (c *big.Int, err error) {
 	cache := pk.Cache()
 	// n+1
 	nPlusOne := cache.NPlusOne
@@ -77,25 +90,25 @@ func (pk *PubKey) encrypt(msg, r *big.Int) (c *big.Int, err error) {
 	return
 }
 
-// Encrypt encrypts a message and returns its encryption as a big Integer cAlpha.
+// EncryptWithProof encrypts a message and returns its encryption as a big Integer cAlpha.
 // It also returns a ZKProof that demonstrates that the encrypted value corresponds to the
 // message. If there is an error, it returns a nil integer as cAlpha.
-func (pk *PubKey) Encrypt(message *big.Int) (c *big.Int, proof ZKProof, err error) {
-	r, err := pk.randomModNToSPlusOneStar()
+func (pk *PubKey) EncryptWithProof(message *big.Int) (c *big.Int, proof ZKProof, err error) {
+	r, err := pk.RandomModNToSPlusOneStar()
 	if err != nil {
 		return
 	}
-	return pk.EncryptFixed(message, r)
+	return pk.EncryptFixedWithProof(message, r)
 }
 
-// EncryptFixed encrypts a message and returns its encryption as a big Integer cAlpha.
+// EncryptFixedWithProof encrypts a message and returns its encryption as a big Integer cAlpha.
 // It uses a given big.Int r as the random number of the encryption.
-func (pk *PubKey) EncryptFixed(message, r *big.Int) (c *big.Int, proof ZKProof, err error) {
-	c, err = pk.encrypt(message, r)
+func (pk *PubKey) EncryptFixedWithProof(message, r *big.Int) (c *big.Int, proof ZKProof, err error) {
+	c, err = pk.EncryptFixed(message, r)
 	if err != nil {
 		return
 	}
-	proof, err = pk.EncryptionProof(message, c, r)
+	proof, err = pk.EncryptProof(message, c, r)
 	if err != nil {
 		return
 	}
@@ -124,38 +137,50 @@ func (pk *PubKey) Add(cList ...*big.Int) (sum *big.Int, err error) {
 	return
 }
 
-// multiply multiplies a encrypted value by a constant. It returns an error if it is not able to
-// multiply the value.
-func (pk *PubKey) multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err error) {
-	cache := pk.Cache()
-	nToSPlusOne := cache.NToSPlusOne
-	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
-		err = fmt.Errorf("cAlpha must be between 0 (inclusive) and N^(s+1) (exclusive)")
-		return
-	}
-	preMul := new(big.Int).Exp(c, alpha, nToSPlusOne)
-	gamma, err = pk.randomModNToSPlusOneStar()
+// Multiply multiplies a encrypted value by a constant. It returns an error if it is not able to
+// multiply the value. It returns the multiplied value mul and the random value gamma used to encrypt it.
+func (pk *PubKey) Multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err error) {
+	gamma, err = pk.RandomModNToSPlusOneStar()
 	if err != nil {
 		return
 	}
-	zero, err := pk.encrypt(new(big.Int), gamma)
+	mul, err = pk.MultiplyFixed(c, alpha, gamma)
+	return
+}
+
+// MultiplyFixed multiplies a encrypted value by a constant using a fixed random constant.
+// to encrypt it. It returns an error if it is not able to  multiply the value.
+// If it succeeds, it returns the multiplied value mul.
+func (pk *PubKey) MultiplyFixed(c *big.Int, alpha, gamma *big.Int) (mul *big.Int, err error) {
+	cache := pk.Cache()
+	nToSPlusOne := cache.NToSPlusOne
+	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
+		err = fmt.Errorf("c must be between 0 (inclusive) and N^(s+1) (exclusive)")
+		return
+	}
+	preMul := new(big.Int).Exp(c, alpha, nToSPlusOne)
+	zero, err := pk.EncryptFixed(new(big.Int), gamma)
+	if err != nil {
+		return
+	}
 	mul, err = pk.Add(preMul, zero)
 	return
 }
 
-// Multiply multiplies an encrypted value by a constant and returns it with a ZKProof of the
-// multiplication. It returns an error if it is not able to multiply the value.
-func (pk *PubKey) Multiply(encrypted *big.Int, constant *big.Int) (result *big.Int, proof ZKProof, err error) {
-	result, gamma, err := pk.multiply(encrypted, constant)
-	s, err := pk.randomModNToSPlusOneStar()
+
+// MultiplyWithProof multiplies an encrypted value by a constant and returns it with a ZKProof of the
+// multiplication. It returns an error if it is not able to Multiply the value.
+func (pk *PubKey) MultiplyWithProof(encrypted *big.Int, constant *big.Int) (result *big.Int, proof ZKProof, err error) {
+	result, gamma, err := pk.Multiply(encrypted, constant)
+	s, err := pk.RandomModNToSPlusOneStar()
 	if err != nil {
 		return
 	}
-	cAlpha, err := pk.encrypt(constant, s)
+	cAlpha, err := pk.EncryptFixed(constant, s)
 	if err != nil {
 		return
 	}
-	proof, err = pk.MultiplicationProof(encrypted, cAlpha, result, constant, s, gamma)
+	proof, err = pk.MultiplyProof(encrypted, cAlpha, result, constant, s, gamma)
 	return
 }
 
@@ -209,9 +234,9 @@ func (pk *PubKey) CombineShares(shares ...*DecryptionShare) (dec *big.Int, err e
 	return
 }
 
-// EncryptionProof returns a ZK Proof of an encrypted message c. S is the random number
-// used to encrypt message to c.
-func (pk *PubKey) EncryptionProof(message *big.Int, c, s *big.Int) (zk ZKProof, err error) {
+// EncryptProof returns a ZK Proof of an encrypted message c. S is the random number
+// used to EncryptFixed message to c.
+func (pk *PubKey) EncryptProof(message *big.Int, c, s *big.Int) (zk ZKProof, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	nPlusOne := cache.NPlusOne
@@ -219,12 +244,12 @@ func (pk *PubKey) EncryptionProof(message *big.Int, c, s *big.Int) (zk ZKProof, 
 
 	alpha := new(big.Int).Set(message)
 
-	x, err := pk.randomModN()
+	x, err := pk.RandomModN()
 	if err != nil {
 		return
 	}
 
-	u, err := pk.randomModNToSPlusOneStar()
+	u, err := pk.RandomModNToSPlusOneStar()
 	if err != nil {
 		return
 	}
@@ -260,10 +285,10 @@ func (pk *PubKey) EncryptionProof(message *big.Int, c, s *big.Int) (zk ZKProof, 
 	return
 }
 
-// MultiplicationProof returns a ZKProof confirming that d is the result of multiplicate the encrypted
+// MultiplyProof returns a ZKProof confirming that d is the result of multiplicate the encrypted
 // value ca by alpha. cAlpha is the encrypted form of the constant using s as random value, while gamma
 // is the random value used to generate d.
-func (pk *PubKey) MultiplicationProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (zk ZKProof, err error) {
+func (pk *PubKey) MultiplyProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (zk ZKProof, err error) {
 	cache := pk.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	nPlusOne := cache.NPlusOne
@@ -279,17 +304,17 @@ func (pk *PubKey) MultiplicationProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (
 		return
 	}
 
-	x, err := pk.randomModN()
+	x, err := pk.RandomModN()
 	if err != nil {
 		return
 	}
 
-	u, err := pk.randomModNToSPlusOneStar()
+	u, err := pk.RandomModNToSPlusOneStar()
 	if err != nil {
 		return
 	}
 
-	v, err := pk.randomModNToSPlusOneStar()
+	v, err := pk.RandomModNToSPlusOneStar()
 	if err != nil {
 		return
 	}
@@ -332,7 +357,6 @@ func (pk *PubKey) MultiplicationProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (
 
 	zk = &MulZK{
 		cAlpha: cAlpha,
-		ca:     ca,
 		b:      b,
 		w:      w,
 		z:      z,
@@ -342,35 +366,11 @@ func (pk *PubKey) MultiplicationProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (
 	return
 }
 
-func (pk *PubKey) randomModN() (r *big.Int, err error) {
+func (pk *PubKey) RandomModN() (r *big.Int, err error) {
 	return rand.Int(pk.RandSource, pk.N)
 }
 
-func (pk *PubKey) randomModNToS() (r *big.Int, err error) {
-	cache := pk.Cache()
-	return rand.Int(pk.RandSource, cache.NToS)
-}
-
-func (pk *PubKey) randomModNStar() (r *big.Int, err error) {
-	cache := pk.Cache()
-	r, err = rand.Int(pk.RandSource, cache.NMinusOne)
-	if err != nil {
-		return
-	}
-	r.Add(r, one)
-	return
-}
-
-func (pk *PubKey) randomModNPlusOneStar() (r *big.Int, err error) {
-	r, err = pk.randomModN()
-	if err != nil {
-		return
-	}
-	r.Add(r, one)
-	return
-}
-
-func (pk *PubKey) randomModNToSPlusOneStar() (r *big.Int, err error) {
+func (pk *PubKey) RandomModNToSPlusOneStar() (r *big.Int, err error) {
 	cache := pk.Cache()
 	nToSPlusOneMinusOne := new(big.Int).Sub(cache.NToSPlusOne, one)
 	r, err = rand.Int(pk.RandSource, nToSPlusOneMinusOne)

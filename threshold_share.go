@@ -15,9 +15,9 @@ type KeyShare struct {
 	Si    *big.Int
 }
 
-// PartialDecryption decrypts the encripted value partially, using only one
+// PartialDecrypt decrypts the encrypted value partially, using only one
 // keyShare.
-func (ts *KeyShare) PartialDecryption(c *big.Int) (pd *big.Int, err error) {
+func (ts *KeyShare) PartialDecrypt(c *big.Int) (ds *DecryptionShare, err error) {
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
@@ -28,37 +28,29 @@ func (ts *KeyShare) PartialDecryption(c *big.Int) (pd *big.Int, err error) {
 	DeltaSi2 := new(big.Int)
 	DeltaSi2.Mul(two, ts.Delta).Mul(DeltaSi2, ts.Si)
 
-	pd = new(big.Int).Exp(c, DeltaSi2, nToSPlusOne)
-	return
-}
-
-// Decrypt returns a DecryptionShare, that is composed by a ZKProof and
-// a partially decrypted value.
-func (ts *KeyShare) Decrypt(c *big.Int) (ds *DecryptionShare, zk *DecryptShareZK, err error) {
-	cache := ts.Cache()
-	nToSPlusOne := cache.NToSPlusOne
-	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
-		err = fmt.Errorf("cAlpha must be between 0 (inclusive) and N^(s+1) (exclusive)")
-		return
-	}
-
-	ci, err := ts.PartialDecryption(c)
-	if err != nil {
-		return
-	}
+	pd := new(big.Int).Exp(c, DeltaSi2, nToSPlusOne)
 
 	ds = &DecryptionShare{
 		Index: ts.Index,
-		Ci:    ci,
+		Ci:    pd,
 	}
-
-	zk, err = ts.DecryptProof(c, ci)
 
 	return
 }
 
+// PartialDecryptWithProof returns a DecryptionShare, that is composed by a ZKProof and
+// a partially decrypted value.
+func (ts *KeyShare) PartialDecryptWithProof(c *big.Int) (ds *DecryptionShare, zk *DecryptShareZK, err error) {
+	ds, err = ts.PartialDecrypt(c)
+	if err != nil {
+		return
+	}
+	zk, err = ts.PartialDecryptProof(c, ds)
 
-func (ts *KeyShare) DecryptProof(c, ci *big.Int) (zk *DecryptShareZK, err error) {
+	return
+}
+
+func (ts *KeyShare) PartialDecryptProof(c *big.Int, ds *DecryptionShare) (zk *DecryptShareZK, err error) {
 
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
@@ -75,7 +67,7 @@ func (ts *KeyShare) DecryptProof(c, ci *big.Int) (zk *DecryptShareZK, err error)
 	a := new(big.Int).Exp(cTo4, r, nToSPlusOne)
 	b := new(big.Int).Exp(v, r, nToSPlusOne)
 
-	ciTo2 := new(big.Int).Exp(ci, two, nToSPlusOne)
+	ciTo2 := new(big.Int).Exp(ds.Ci, two, nToSPlusOne)
 
 	hash := sha256.New()
 	hash.Write(a.Bytes())

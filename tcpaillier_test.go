@@ -49,7 +49,7 @@ func TestPubKey_Encrypt(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted, zk, err := pk.Encrypt(twelve)
+	encrypted, zk, err := pk.EncryptWithProof(twelve)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -60,7 +60,7 @@ func TestPubKey_Encrypt(t *testing.T) {
 	}
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encrypted)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encrypted)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -88,7 +88,7 @@ func TestPubKey_Add(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted, zk, err := pk.Encrypt(twelve)
+	encrypted, zk, err := pk.EncryptWithProof(twelve)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -97,7 +97,7 @@ func TestPubKey_Add(t *testing.T) {
 		t.Errorf("error verifying first encryption ZKProof: %v", err)
 		return
 	}
-	encrypted2, zk, err := pk.Encrypt(twentyFive)
+	encrypted2, zk, err := pk.EncryptWithProof(twentyFive)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -115,7 +115,7 @@ func TestPubKey_Add(t *testing.T) {
 
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encryptedSum)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encryptedSum)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -145,7 +145,7 @@ func TestPubKey_AddNegative(t *testing.T) {
 	}
 	minusTwelve := new(big.Int).Neg(twelve)
 	minusTwelve.Mod(minusTwelve, pk.Cache().NToSPlusOne)
-	encrypted, zk, err := pk.Encrypt(minusTwelve)
+	encrypted, zk, err := pk.EncryptWithProof(minusTwelve)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -156,7 +156,7 @@ func TestPubKey_AddNegative(t *testing.T) {
 	}
 	minusTwentyFive := new(big.Int).Neg(twentyFive)
 	minusTwentyFive.Mod(minusTwentyFive, pk.Cache().NToSPlusOne)
-	encrypted2, zk, err := pk.Encrypt(minusTwentyFive)
+	encrypted2, zk, err := pk.EncryptWithProof(minusTwentyFive)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -176,7 +176,7 @@ func TestPubKey_AddNegative(t *testing.T) {
 	sum.Mod(sum, pk.N)
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encryptedSum)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encryptedSum)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -204,7 +204,7 @@ func TestPubKey_Multiply(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted, zk, err := pk.Encrypt(twelve)
+	encrypted, zk, err := pk.EncryptWithProof(twelve)
 	if err != nil {
 		t.Errorf("error encrypting twelve: %v", err)
 		return
@@ -214,20 +214,20 @@ func TestPubKey_Multiply(t *testing.T) {
 		return
 	}
 
-	encryptedMul, proof, err := pk.Multiply(encrypted, twentyFive)
+	encryptedMul, proof, err := pk.MultiplyWithProof(encrypted, twentyFive)
 	if err != nil {
 		t.Errorf("Error multiplying twelve for constant %s: %v", twentyFive, err)
 		return
 	}
 
-	if err := proof.Verify(pk, encryptedMul); err != nil {
+	if err := proof.Verify(pk, encryptedMul, encrypted); err != nil {
 		t.Errorf("Error verifying mulZKProof: %v", err)
 		return
 	}
 
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encryptedMul)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encryptedMul)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -261,7 +261,7 @@ func TestPubKey_RandAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted, zk, err := pk.Encrypt(rand1)
+	encrypted, zk, err := pk.EncryptWithProof(rand1)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -275,7 +275,7 @@ func TestPubKey_RandAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted2, zk, err := pk.Encrypt(rand2)
+	encrypted2, zk, err := pk.EncryptWithProof(rand2)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -294,7 +294,7 @@ func TestPubKey_RandAdd(t *testing.T) {
 
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encryptedSum)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encryptedSum)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -324,7 +324,7 @@ func TestPubKey_RandMul(t *testing.T) {
 	}
 	maxRand := new(big.Int).Rsh(pk.N, uint(pk.N.BitLen()/2))
 	rand1, err := rand.Int(rand.Reader, maxRand)
-	encrypted, zk, err := pk.Encrypt(rand1)
+	encrypted, zk, err := pk.EncryptWithProof(rand1)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -338,12 +338,12 @@ func TestPubKey_RandMul(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encryptedMul, zk, err := pk.Multiply(encrypted, rand2)
+	encryptedMul, zk, err := pk.MultiplyWithProof(encrypted, rand2)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk, encryptedMul); err != nil {
+	if err := zk.Verify(pk, encryptedMul, encrypted); err != nil {
 		t.Errorf("error verifying multiplication ZKProof: %v", err)
 		return
 	}
@@ -351,7 +351,7 @@ func TestPubKey_RandMul(t *testing.T) {
 	randSum.Mod(randSum, pk.N)
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encryptedMul)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encryptedMul)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -381,7 +381,7 @@ func TestPubKey_OverflowAdd(t *testing.T) {
 	}
 	maxRand := new(big.Int)
 	maxRand.SetBit(maxRand, pk.N.BitLen(), 1)
-	encrypted, zk, err := pk.Encrypt(maxRand)
+	encrypted, zk, err := pk.EncryptWithProof(maxRand)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -399,7 +399,7 @@ func TestPubKey_OverflowAdd(t *testing.T) {
 	}
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encryptedSum)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encryptedSum)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -429,7 +429,7 @@ func TestPubKey_OverflowMul(t *testing.T) {
 	}
 	maxRand := new(big.Int)
 	maxRand.SetBit(maxRand, pk.N.BitLen(), 1)
-	encrypted, zk, err := pk.Encrypt(maxRand)
+	encrypted, zk, err := pk.EncryptWithProof(maxRand)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -440,18 +440,18 @@ func TestPubKey_OverflowMul(t *testing.T) {
 	}
 	mul := new(big.Int).Mul(maxRand, maxRand)
 	mul.Mod(mul, pk.N)
-	encryptedMul, zk, err := pk.Multiply(encrypted, maxRand)
+	encryptedMul, zk, err := pk.MultiplyWithProof(encrypted, maxRand)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk, encryptedMul); err != nil {
+	if err := zk.Verify(pk, encryptedMul, encrypted); err != nil {
 		t.Errorf("error verifying multiplication ZKProof: %v", err)
 		return
 	}
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encryptedMul)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encryptedMul)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -485,7 +485,7 @@ func TestPubKey_FixedAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted, zk, err := pk.EncryptFixed(rand1, big.NewInt(1))
+	encrypted, zk, err := pk.EncryptFixedWithProof(rand1, big.NewInt(1))
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -499,7 +499,7 @@ func TestPubKey_FixedAdd(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encrypted2, zk, err := pk.EncryptFixed(rand2, big.NewInt(1))
+	encrypted2, zk, err := pk.EncryptFixedWithProof(rand2, big.NewInt(1))
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -515,12 +515,12 @@ func TestPubKey_FixedAdd(t *testing.T) {
 		return
 	}
 
-	encryptedMul, zkp, err := pk.Multiply(encryptedSum, twelve)
+	encryptedMul, zkp, err := pk.MultiplyWithProof(encryptedSum, twelve)
 	if err != nil {
 		t.Errorf("error verifying addition ZKProof: %v", err)
 		return
 	}
-	if err := zkp.Verify(pk, encryptedMul); err != nil {
+	if err := zkp.Verify(pk, encryptedMul, encryptedSum); err != nil {
 		t.Errorf("error verifying multiplication ZKProof: %v", err)
 		return
 	}
@@ -530,7 +530,7 @@ func TestPubKey_FixedAdd(t *testing.T) {
 
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(encryptedMul)
+		decryptShare, zk, err := share.PartialDecryptWithProof(encryptedMul)
 		if err != nil {
 			t.Errorf("share %d is not able to decrypt partially the message: %v", share.Index, err)
 			return
@@ -559,15 +559,15 @@ func ExamplePubKey_Add() {
 		panic(fmt.Sprintf("%v", err))
 	}
 
-	// Now we encrypt two values: 12 and 25
-	encTwelve, zk, err := pk.Encrypt(big.NewInt(12))
+	// Now we EncryptFixed two values: 12 and 25
+	encTwelve, zk, err := pk.EncryptWithProof(big.NewInt(12))
 	if err != nil {
 		panic(err)
 	}
 	if err := zk.Verify(pk, encTwelve); err != nil {
 		panic(err)
 	}
-	encTwentyFive, zk, err := pk.Encrypt(big.NewInt(25))
+	encTwentyFive, zk, err := pk.EncryptWithProof(big.NewInt(25))
 	if err != nil {
 		panic(err)
 	}
@@ -581,7 +581,7 @@ func ExamplePubKey_Add() {
 	// We decrypt them with our shares
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(thirtySevenSum)
+		decryptShare, zk, err := share.PartialDecryptWithProof(thirtySevenSum)
 		if err != nil {
 			panic(err)
 		}
@@ -609,8 +609,8 @@ func ExamplePubKey_Multiply() {
 		panic(fmt.Sprintf("%v", err))
 	}
 
-	// Now we encrypt two values: 12 and 25
-	encTwelve, zk, err := pk.Encrypt(big.NewInt(12))
+	// Now we EncryptFixed two values: 12 and 25
+	encTwelve, zk, err := pk.EncryptWithProof(big.NewInt(12))
 	if err != nil {
 		panic(err)
 	}
@@ -618,20 +618,20 @@ func ExamplePubKey_Multiply() {
 		panic(err)
 	}
 
-	// We multiply them
-	thirtySevenSum, zkp, err := pk.Multiply(encTwelve, big.NewInt(25))
+	// We Multiply them
+	thirtySevenSum, zkp, err := pk.MultiplyWithProof(encTwelve, big.NewInt(25))
 	if err != nil {
 		panic(err)
 	}
 
-	if err := zkp.Verify(pk, thirtySevenSum); err != nil {
+	if err := zkp.Verify(pk, thirtySevenSum, encTwelve); err != nil {
 		panic(err)
 	}
 
 	// We decrypt them with our shares
 	decryptShares := make([]*tcpaillier.DecryptionShare, l)
 	for i, share := range shares {
-		decryptShare, zk, err := share.Decrypt(thirtySevenSum)
+		decryptShare, zk, err := share.PartialDecryptWithProof(thirtySevenSum)
 		if err != nil {
 			panic(err)
 		}
