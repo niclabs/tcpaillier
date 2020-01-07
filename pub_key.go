@@ -150,6 +150,7 @@ func (pk *PubKey) Multiply(c *big.Int, alpha *big.Int) (mul, gamma *big.Int, err
 
 // MultiplyFixed multiplies a encrypted value by a constant using a fixed random constant.
 // to encrypt it. It returns an error if it is not able to  multiply the value.
+// Gamma is used in reranding process.
 // If it succeeds, it returns the multiplied value mul.
 func (pk *PubKey) MultiplyFixed(c *big.Int, alpha, gamma *big.Int) (mul *big.Int, err error) {
 	cache := pk.Cache()
@@ -159,14 +160,20 @@ func (pk *PubKey) MultiplyFixed(c *big.Int, alpha, gamma *big.Int) (mul *big.Int
 		return
 	}
 	preMul := new(big.Int).Exp(c, alpha, nToSPlusOne)
-	zero, err := pk.EncryptFixed(new(big.Int), gamma)
-	if err != nil {
-		return
-	}
-	mul, err = pk.Add(preMul, zero)
+	mul, err = pk.ReRand(preMul, gamma)
 	return
 }
 
+
+// ReRand rerandomizes a value, adding 0 and encrypting it with a random value r.
+func (pk *PubKey) ReRand(c, r *big.Int) (reRand *big.Int, err error) {
+	zero, err := pk.EncryptFixed(new(big.Int), r)
+	if err != nil {
+		return
+	}
+	reRand, err = pk.Add(c, zero)
+	return
+}
 
 // MultiplyWithProof multiplies an encrypted value by a constant and returns it with a ZKProof of the
 // multiplication. It returns an error if it is not able to Multiply the value.

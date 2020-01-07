@@ -80,7 +80,7 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 		return
 	}
 
-	// generate V with Shoup heuristic
+	// generate Vi with Shoup heuristic
 	var r *big.Int
 	for {
 		r, err = RandomInt(4*bitSize, randSource)
