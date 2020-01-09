@@ -11,10 +11,17 @@ paper from Ivan Damgård et al. [A Generalization of Paillier's Public Key Syste
 
 # Requirements
 
-Due to Golang extensive standard library, this implementation does not have external requirements (obviously aside of Golang, version 1.12 or above).
-Installing
+Due to Golang extensive standard library, this implementation does not have external requirements (obviously aside of Golang, version 1.13 or above).
 
+# Using the Library
+
+To use the library with a module-enabled go project, you must write the following line on a terminal on the root file of the project.
+
+```bash
 go get https://github.com/niclabs/tcpaillier
+```
+
+# Testing
 
 To run the tests you just need to use go test:
 
