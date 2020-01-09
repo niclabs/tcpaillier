@@ -13,7 +13,7 @@ import (
 )
 
 // NewKey returns a list of l keyshares of bitSize bits of length, with a threshold of
-// k and using an S parameter of s in PubKey. It uses randSource
+// k and using an s parameter of s in PubKey. It uses randSource
 // as a random source. If randSource is undefined, it uses crypto/rand
 // reader.
 func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyShare, pubKey *PubKey, err error) {

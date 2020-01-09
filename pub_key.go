@@ -34,7 +34,7 @@ type cached struct {
 // Cache initializes the cached values and returns the structure.
 func (pk *PubKey) Cache() *cached {
 	if pk.cached == nil {
-		// S
+		// s
 		bigS := big.NewInt(int64(pk.S))
 		// n+1
 		nPlusOne := new(big.Int).Add(pk.N, one)
@@ -241,7 +241,7 @@ func (pk *PubKey) CombineShares(shares ...*DecryptionShare) (dec *big.Int, err e
 	return
 }
 
-// EncryptProof returns a ZK Proof of an encrypted message c. S is the random number
+// EncryptProof returns a ZK Proof of an encrypted message c. s is the random number
 // used to EncryptFixed message to c.
 func (pk *PubKey) EncryptProof(message *big.Int, c, s *big.Int) (zk ZKProof, err error) {
 	cache := pk.Cache()
