@@ -1,7 +1,6 @@
 // Package tcpaillier is a Threshold PubKey library, based on the Java Implementation.
 // of Threshold PubKey Toolbox [1].
 
-
 // [1] http://www.cs.utdallas.edu/dspl/cgi-bin/pailliertoolbox/index.php
 package tcpaillier
 
@@ -12,11 +11,30 @@ import (
 	"math/big"
 )
 
+const c = 25
+
+type FixedParams struct {
+	P, P1, Q, Q1 *big.Int
+}
+
+func (fp *FixedParams) Validate() bool {
+	p1 := new(big.Int).Rsh(fp.P, 1)
+	q1 := new(big.Int).Rsh(fp.Q, 1)
+	return fp.P.ProbablyPrime(c) &&
+		fp.Q.ProbablyPrime(c) &&
+		fp.P1.ProbablyPrime(c) &&
+		fp.Q1.ProbablyPrime(25) &&
+		p1.Cmp(fp.P1) == 0 && q1.Cmp(fp.Q1) == 0
+}
+
+func (fp *FixedParams) String() string {
+	return fmt.Sprintf("P: %s\nq: %s\np1: %s\nq1: %s\n", fp.P, fp.Q, fp.P1, fp.Q1)
+}
+
 // NewKey returns a list of l keyshares of bitSize bits of length, with a threshold of
 // k and using an s parameter of s in PubKey. It uses randSource
-// as a random source. If randSource is undefined, it uses crypto/rand
-// reader.
-func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyShare, pubKey *PubKey, err error) {
+// as a random source. It also uses a list of fixed params as the primes needed for the scheme.
+func NewFixedKey(bitSize int, s, l, k uint8, randSource io.Reader, params *FixedParams) (keyShares []*KeyShare, pubKey *PubKey, err error) {
 	if randSource == nil {
 		randSource = rand.Reader
 	}
@@ -41,30 +59,11 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 		return
 	}
 
-	pPrimeSize := (bitSize + 1) / 2
-	qPrimeSize := bitSize - pPrimeSize
-
 	bigS := big.NewInt(int64(s))
 	sPlusOne := new(big.Int).Add(bigS, one)
 
-	p, p1, err := GenerateSafePrimes(pPrimeSize, randSource)
-	if err != nil {
-		return
-	}
-
-	var q, q1 *big.Int
-	for {
-		q, q1, err = GenerateSafePrimes(qPrimeSize, randSource)
-		if err != nil {
-			return
-		}
-		if p.Cmp(q) != 0 && p.Cmp(q1) != 0 && q.Cmp(p1) != 0 {
-			break
-		}
-	}
-
-	n := new(big.Int).Mul(p, q)
-	m := new(big.Int).Mul(p1, q1)
+	n := new(big.Int).Mul(params.P, params.Q)
+	m := new(big.Int).Mul(params.P1, params.Q1)
 	nm := new(big.Int).Mul(n, m)
 	nToS := new(big.Int).Exp(n, bigS, nil)
 	nToSPlusOne := new(big.Int).Exp(n, sPlusOne, nil)
@@ -129,4 +128,31 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 		pubKey.Vi[index] = new(big.Int).Exp(v, deltaSi, nToSPlusOne)
 	}
 	return
+}
+
+// NewKey returns a list of l keyshares of bitSize bits of length, with a threshold of
+// k and using an s parameter of s in PubKey. It uses randSource
+// as a random source. If randSource is undefined, it uses crypto/rand
+// reader.
+func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyShare, pubKey *PubKey, err error) {
+
+	pPrimeSize := (bitSize + 1) / 2
+	qPrimeSize := bitSize - pPrimeSize
+
+	p, p1, err := GenerateSafePrimes(pPrimeSize, randSource)
+	if err != nil {
+		return
+	}
+
+	var q, q1 *big.Int
+	for {
+		q, q1, err = GenerateSafePrimes(qPrimeSize, randSource)
+		if err != nil {
+			return
+		}
+		if p.Cmp(q) != 0 && p.Cmp(q1) != 0 && q.Cmp(p1) != 0 {
+			break
+		}
+	}
+	return NewFixedKey(bitSize, s, l, k, randSource, &FixedParams{p, p1, q, q1,})
 }
