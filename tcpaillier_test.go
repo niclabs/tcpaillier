@@ -8,9 +8,9 @@ import (
 	"testing"
 )
 
-const k = 3
-const l = 5
-const s = 2
+const k = 7
+const l = 10
+const s = 1
 
 const bitSize = 512
 
