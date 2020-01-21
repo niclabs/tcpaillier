@@ -4,7 +4,7 @@ import (
 	"math/big"
 )
 
-// DecryptionShare represents a partial decryption of a value
+// DecryptionShare represents A partial decryption of A value
 // and the ZKProof of that decryption. It complies with ZKProof
 // interface.
 type DecryptionShare struct {

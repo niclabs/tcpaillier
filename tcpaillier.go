@@ -1,4 +1,4 @@
-// Package tcpaillier is a Threshold PubKey library, based on the Java Implementation.
+// Package tcpaillier is A Threshold PubKey library, based on the Java Implementation.
 // of Threshold PubKey Toolbox [1].
 
 // [1] http://www.cs.utdallas.edu/dspl/cgi-bin/pailliertoolbox/index.php
@@ -29,9 +29,9 @@ func (fp *FixedParams) String() string {
 	return fmt.Sprintf("P: %s\nq: %s\np1: %s\nq1: %s\n", fp.P, fp.Q, fp.P1, fp.Q1)
 }
 
-// NewKey returns a list of l keyshares of bitSize bits of length, with a threshold of
+// NewKey returns A list of l keyshares of bitSize bits of length, with A threshold of
 // k and using an s parameter of s in PubKey. It uses randSource
-// as a random source. It also uses a list of fixed params as the primes needed for the scheme.
+// as A random source. It also uses A list of fixed params as the primes needed for the scheme.
 func NewFixedKey(bitSize int, s, l, k uint8, params *FixedParams) (keyShares []*KeyShare, pubKey *PubKey, err error) {
 	// Parameter checking
 	if bitSize < 64 {
@@ -124,9 +124,9 @@ func NewFixedKey(bitSize int, s, l, k uint8, params *FixedParams) (keyShares []*
 	return
 }
 
-// NewKey returns a list of l keyshares of bitSize bits of length, with a threshold of
+// NewKey returns A list of l keyshares of bitSize bits of length, with A threshold of
 // k and using an s parameter of s in PubKey. It uses randSource
-// as a random source. If randSource is undefined, it uses crypto/rand
+// as A random source. If randSource is undefined, it uses crypto/rand
 // reader.
 func NewKey(bitSize int, s, l, k uint8) (keyShares []*KeyShare, pubKey *PubKey, err error) {
 

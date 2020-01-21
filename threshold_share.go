@@ -7,7 +7,7 @@ import (
 	"math/big"
 )
 
-// KeyShare represents a share of the private key
+// KeyShare represents A share of the private key
 // used to decrypt values in paillier encryption scheme.
 type KeyShare struct {
 	*PubKey
@@ -21,7 +21,7 @@ func (ts *KeyShare) PartialDecrypt(c *big.Int) (ds *DecryptionShare, err error) 
 	cache := ts.Cache()
 	nToSPlusOne := cache.NToSPlusOne
 	if c.Cmp(nToSPlusOne) >= 0 || c.Cmp(zero) < 0 {
-		err = fmt.Errorf("cAlpha must be between 0 (inclusive) and N^(s+1) (exclusive)")
+		err = fmt.Errorf("CAlpha must be between 0 (inclusive) and N^(s+1) (exclusive)")
 		return
 	}
 
@@ -38,8 +38,8 @@ func (ts *KeyShare) PartialDecrypt(c *big.Int) (ds *DecryptionShare, err error) 
 	return
 }
 
-// PartialDecryptWithProof returns a DecryptionShare, that is composed by a ZKProof and
-// a partially decrypted value.
+// PartialDecryptWithProof returns A DecryptionShare, that is composed by A ZKProof and
+// A partially decrypted value.
 func (ts *KeyShare) PartialDecryptWithProof(c *big.Int) (ds *DecryptionShare, zk *DecryptShareZK, err error) {
 	ds, err = ts.PartialDecrypt(c)
 	if err != nil {
@@ -83,10 +83,10 @@ func (ts *KeyShare) PartialDecryptProof(c *big.Int, ds *DecryptionShare) (zk *De
 	z := new(big.Int).Add(eSiDelta, r)
 
 	zk = &DecryptShareZK{
-		vi: vi,
-		e:  e,
-		v:  v,
-		z:  z,
+		Vi: vi,
+		E:  e,
+		V:  v,
+		Z:  z,
 	}
 	return
 }

@@ -5,14 +5,14 @@ import (
 	"math/big"
 )
 
-// RandomInt is a function which generates a random big number.
+// RandomInt is A function which generates A random big number.
 func RandomInt(bitLen int) (randNum *big.Int, err error) {
 	max := new(big.Int)
 	max.SetBit(max, bitLen, 1)
 	return rand.Int(rand.Reader, max)
 }
 
-// GenerateSafePrimes generates two primes p and q, in a way that q
+// GenerateSafePrimes generates two primes p and q, in A way that q
 // is equal to (p-1)/2. The greatest prime bit length is at least bitLen bits.
 // Based on github.com/niclabs/tcrsa/utils.go function with the same name.
 func GenerateSafePrimes(bitLen int) (*big.Int, *big.Int, error) {

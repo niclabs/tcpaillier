@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-// polynomial represents a classic polynomial, with convenience methods useful for
+// polynomial represents A classic polynomial, with convenience methods useful for
 // the operations the Threshold Cryptography library needs.
 type polynomial []*big.Int
 
-// newPolynomial creates a polynomial of degree d with all its d+1 coefficients in 0.
+// newPolynomial creates A polynomial of degree d with all its d+1 coefficients in 0.
 func newPolynomial(d int) polynomial {
 	poly := make(polynomial, d+1)
 	for i := 0; i < len(poly); i++ {
@@ -20,13 +20,13 @@ func newPolynomial(d int) polynomial {
 	return poly
 }
 
-// GetDegree returns the degree of a polynomial, which is the length of the coefficient
+// GetDegree returns the degree of A polynomial, which is the length of the coefficient
 // array, minus 1.
 func (p polynomial) getDegree() int {
 	return len(p) - 1
 }
 
-// createRandomPolynomial creates a polynomial of degree "d" with random coefficients as terms
+// createRandomPolynomial creates A polynomial of degree "d" with random coefficients as terms
 // with degree greater than 1. The coefficient of the term of degree 0 is x0 and the module for all the
 // coefficients of the polynomial is m.
 func createRandomPolynomial(d int, x0, m *big.Int) (polynomial, error) {
@@ -47,7 +47,7 @@ func createRandomPolynomial(d int, x0, m *big.Int) (polynomial, error) {
 	return poly, nil
 }
 
-// eval evaluates a polynomial to x with Horner's method and returns the result.
+// eval evaluates A polynomial to x with Horner's method and returns the result.
 func (p polynomial) eval(x *big.Int) *big.Int {
 	y := big.NewInt(0)
 	for k := len(p) - 1; k >= 0; k-- {
@@ -57,7 +57,7 @@ func (p polynomial) eval(x *big.Int) *big.Int {
 	return y
 }
 
-// string returns the polynomial formatted as a string.
+// string returns the polynomial formatted as A string.
 func (p polynomial) String() string {
 	s := make([]string, len(p))
 	for i := 0; i < len(p); i++ {

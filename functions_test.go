@@ -25,7 +25,7 @@ func TestRandomDev_different(t *testing.T) {
 	}
 }
 
-// Tests that the bit size of the output of a random dev function is the desired.
+// Tests that the bit size of the output of A random dev function is the desired.
 func TestRandomDev_bitSize(t *testing.T) {
 	rand1, err := RandomInt(utilsTestBitlen)
 	if err != nil {

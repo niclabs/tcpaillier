@@ -338,12 +338,12 @@ func TestPubKey_RandMul(t *testing.T) {
 		t.Errorf("%v", err)
 		return
 	}
-	encryptedMul, zk, err := pk.MultiplyWithProof(encrypted, rand2)
+	encryptedMul, mzk, err := pk.MultiplyWithProof(encrypted, rand2)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk, encryptedMul, encrypted); err != nil {
+	if err := mzk.Verify(pk, encryptedMul, encrypted); err != nil {
 		t.Errorf("error verifying multiplication ZKProof: %v", err)
 		return
 	}
@@ -440,12 +440,12 @@ func TestPubKey_OverflowMul(t *testing.T) {
 	}
 	mul := new(big.Int).Mul(maxRand, maxRand)
 	mul.Mod(mul, pk.N)
-	encryptedMul, zk, err := pk.MultiplyWithProof(encrypted, maxRand)
+	encryptedMul, mzk, err := pk.MultiplyWithProof(encrypted, maxRand)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
 	}
-	if err := zk.Verify(pk, encryptedMul, encrypted); err != nil {
+	if err := mzk.Verify(pk, encryptedMul, encrypted); err != nil {
 		t.Errorf("error verifying multiplication ZKProof: %v", err)
 		return
 	}
