@@ -1,7 +1,6 @@
 package tcpaillier
 
 import (
-	"crypto/rand"
 	"math/big"
 	"testing"
 )
@@ -11,15 +10,13 @@ const utilsTestBitlen = 256
 // Miller-Rabin primality test rounds
 const utilsTestC = 25
 
-var R = rand.Reader
-
 // Tests that two consecutive outputs from random dev are different.
 func TestRandomDev_different(t *testing.T) {
-	rand1, err := RandomInt(utilsTestBitlen, R)
+	rand1, err := RandomInt(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("first random number generation failed: %v", err)
 	}
-	rand2, err := RandomInt(utilsTestBitlen, R)
+	rand2, err := RandomInt(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("second random number generation failed: %v", err)
 	}
@@ -30,7 +27,7 @@ func TestRandomDev_different(t *testing.T) {
 
 // Tests that the bit size of the output of a random dev function is the desired.
 func TestRandomDev_bitSize(t *testing.T) {
-	rand1, err := RandomInt(utilsTestBitlen, R)
+	rand1, err := RandomInt(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("first random number generation failed: %v", err)
 	}
@@ -43,7 +40,7 @@ func TestGenerateSafePrimes(t *testing.T) {
 
 	pExpected := new(big.Int)
 
-	p, pr, err := GenerateSafePrimes(utilsTestBitlen, R)
+	p, pr, err := GenerateSafePrimes(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}
@@ -65,12 +62,12 @@ func TestGenerateSafePrimes_keyGeneration(t *testing.T) {
 	d := new(big.Int)
 	r := new(big.Int)
 
-	_, pr, err := GenerateSafePrimes(utilsTestBitlen, R)
+	_, pr, err := GenerateSafePrimes(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}
 
-	_, qr, err := GenerateSafePrimes(utilsTestBitlen, R)
+	_, qr, err := GenerateSafePrimes(utilsTestBitlen)
 	if err != nil {
 		t.Errorf("safe prime generation failed: %v", err)
 	}

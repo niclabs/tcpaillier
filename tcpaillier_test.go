@@ -20,7 +20,7 @@ var fortyNine = big.NewInt(49)
 var threeHundred = big.NewInt(300)
 
 func TestGenKeyShares(t *testing.T) {
-	shares, _, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, _, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -44,7 +44,7 @@ func TestGenKeyShares(t *testing.T) {
 }
 
 func TestPubKey_Encrypt(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -83,7 +83,7 @@ func TestPubKey_Encrypt(t *testing.T) {
 }
 
 func TestPubKey_Add(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -138,7 +138,7 @@ func TestPubKey_Add(t *testing.T) {
 }
 
 func TestPubKey_AddNegative(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -199,7 +199,7 @@ func TestPubKey_AddNegative(t *testing.T) {
 }
 
 func TestPubKey_Multiply(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -250,7 +250,7 @@ func TestPubKey_Multiply(t *testing.T) {
 }
 
 func TestPubKey_RandAdd(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -317,7 +317,7 @@ func TestPubKey_RandAdd(t *testing.T) {
 }
 
 func TestPubKey_RandMul(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -374,7 +374,7 @@ func TestPubKey_RandMul(t *testing.T) {
 }
 
 func TestPubKey_OverflowAdd(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -422,7 +422,7 @@ func TestPubKey_OverflowAdd(t *testing.T) {
 }
 
 func TestPubKey_OverflowMul(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -474,7 +474,7 @@ func TestPubKey_OverflowMul(t *testing.T) {
 }
 
 func TestPubKey_FixedAdd(t *testing.T) {
-	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(bitSize, s, l, k)
 	if err != nil {
 		t.Errorf("%v", err)
 		return
@@ -554,7 +554,7 @@ func TestPubKey_FixedAdd(t *testing.T) {
 
 func ExamplePubKey_Add() {
 	// First, we create the shares with the parameters provided.
-	shares, pk, err := tcpaillier.NewKey(512, 1, 5, 3, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(512, 1, 5, 3)
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}
@@ -604,7 +604,7 @@ func ExamplePubKey_Add() {
 
 func ExamplePubKey_Multiply() {
 	// First, we create the shares with the parameters provided.
-	shares, pk, err := tcpaillier.NewKey(512, 1, 5, 3, rand.Reader)
+	shares, pk, err := tcpaillier.NewKey(512, 1, 5, 3)
 	if err != nil {
 		panic(fmt.Sprintf("%v", err))
 	}

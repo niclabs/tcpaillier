@@ -2,7 +2,6 @@
 package tcpaillier
 
 import (
-	"crypto/rand"
 	"math/big"
 	"testing"
 )
@@ -18,7 +17,7 @@ func TestPolynomial(t *testing.T) {
 }
 
 func TestCreateRandomPolynomial(t *testing.T) {
-	p, err := createRandomPolynomial(polynomialTestDegree, big.NewInt(10), big.NewInt(1024), rand.Reader)
+	p, err := createRandomPolynomial(polynomialTestDegree, big.NewInt(10), big.NewInt(1024))
 	if err != nil {
 		t.Errorf("could not create a random polynomial")
 		return

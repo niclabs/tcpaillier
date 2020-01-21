@@ -5,9 +5,7 @@
 package tcpaillier
 
 import (
-	"crypto/rand"
 	"fmt"
-	"io"
 	"math/big"
 )
 
@@ -34,10 +32,7 @@ func (fp *FixedParams) String() string {
 // NewKey returns a list of l keyshares of bitSize bits of length, with a threshold of
 // k and using an s parameter of s in PubKey. It uses randSource
 // as a random source. It also uses a list of fixed params as the primes needed for the scheme.
-func NewFixedKey(bitSize int, s, l, k uint8, randSource io.Reader, params *FixedParams) (keyShares []*KeyShare, pubKey *PubKey, err error) {
-	if randSource == nil {
-		randSource = rand.Reader
-	}
+func NewFixedKey(bitSize int, s, l, k uint8, params *FixedParams) (keyShares []*KeyShare, pubKey *PubKey, err error) {
 	// Parameter checking
 	if bitSize < 64 {
 		err = fmt.Errorf("bitSize should be at least 64 bits, but it is %d", bitSize)
@@ -73,7 +68,7 @@ func NewFixedKey(bitSize int, s, l, k uint8, randSource io.Reader, params *Fixed
 
 	// Generate polynomial with random coefficients.
 	var poly polynomial
-	poly, err = createRandomPolynomial(int(k-1), d, nm, randSource)
+	poly, err = createRandomPolynomial(int(k-1), d, nm)
 
 	if err != nil {
 		return
@@ -82,7 +77,7 @@ func NewFixedKey(bitSize int, s, l, k uint8, randSource io.Reader, params *Fixed
 	// generate Vi with Shoup heuristic
 	var r *big.Int
 	for {
-		r, err = RandomInt(4*bitSize, randSource)
+		r, err = RandomInt(4*bitSize)
 		if err != nil {
 			return
 		}
@@ -111,7 +106,6 @@ func NewFixedKey(bitSize int, s, l, k uint8, randSource io.Reader, params *Fixed
 		L:          l,
 		Vi:         make([]*big.Int, l),
 		K:          k,
-		RandSource: randSource,
 	}
 
 	var index uint8
@@ -134,19 +128,19 @@ func NewFixedKey(bitSize int, s, l, k uint8, randSource io.Reader, params *Fixed
 // k and using an s parameter of s in PubKey. It uses randSource
 // as a random source. If randSource is undefined, it uses crypto/rand
 // reader.
-func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyShare, pubKey *PubKey, err error) {
+func NewKey(bitSize int, s, l, k uint8) (keyShares []*KeyShare, pubKey *PubKey, err error) {
 
 	pPrimeSize := (bitSize + 1) / 2
 	qPrimeSize := bitSize - pPrimeSize
 
-	p, p1, err := GenerateSafePrimes(pPrimeSize, randSource)
+	p, p1, err := GenerateSafePrimes(pPrimeSize,)
 	if err != nil {
 		return
 	}
 
 	var q, q1 *big.Int
 	for {
-		q, q1, err = GenerateSafePrimes(qPrimeSize, randSource)
+		q, q1, err = GenerateSafePrimes(qPrimeSize)
 		if err != nil {
 			return
 		}
@@ -154,5 +148,5 @@ func NewKey(bitSize int, s, l, k uint8, randSource io.Reader) (keyShares []*KeyS
 			break
 		}
 	}
-	return NewFixedKey(bitSize, s, l, k, randSource, &FixedParams{p, p1, q, q1,})
+	return NewFixedKey(bitSize, s, l, k, &FixedParams{p, p1, q, q1,})
 }

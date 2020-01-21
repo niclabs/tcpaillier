@@ -56,7 +56,7 @@ func (ts *KeyShare) PartialDecryptProof(c *big.Int, ds *DecryptionShare) (zk *De
 	nToSPlusOne := cache.NToSPlusOne
 
 	numBits := int(ts.S+2)*int(ts.K) + crypto.SHA256.Size()*8
-	r, err := RandomInt(numBits, ts.RandSource)
+	r, err := RandomInt(numBits)
 	if err != nil {
 		return
 	}

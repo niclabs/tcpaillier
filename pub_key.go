@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"io"
 	"math/big"
 )
 
@@ -22,7 +21,6 @@ type PubKey struct {
 	L, K, S    uint8
 	Delta      *big.Int
 	Constant   *big.Int
-	RandSource io.Reader
 	cached     *cached
 }
 
@@ -374,13 +372,13 @@ func (pk *PubKey) MultiplyProof(ca, cAlpha, d, alpha, s, gamma *big.Int) (zk ZKP
 }
 
 func (pk *PubKey) RandomModN() (r *big.Int, err error) {
-	return rand.Int(pk.RandSource, pk.N)
+	return rand.Int(rand.Reader, pk.N)
 }
 
 func (pk *PubKey) RandomModNToSPlusOneStar() (r *big.Int, err error) {
 	cache := pk.Cache()
 	nToSPlusOneMinusOne := new(big.Int).Sub(cache.NToSPlusOne, one)
-	r, err = rand.Int(pk.RandSource, nToSPlusOneMinusOne)
+	r, err = rand.Int(rand.Reader, nToSPlusOneMinusOne)
 	if err != nil {
 		return
 	}
